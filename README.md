@@ -15,25 +15,121 @@ Mic ─► sounddevice (16 kHz, 0.25 s blocks) ─► StreamingRecognizer ─►
                                    pynput: → / ← / "N⏎"                       SQLite (text only)
 ```
 
-## Quick try (no slides, no server)
-Talk and see what NEX heard, what it would do, and how long it took. No keys are pressed.
+## Test it yourself: step by step
+It takes about 15 minutes. You test in 3 stages: in the terminal first, then on the web page, then with real slides.
+
+### Step 0: What you need
+- A Windows or Mac laptop with a microphone. A headset or clip-on mic works best.
+- **Python 3.10–3.12.** Check with `python --version` (on Mac: `python3 --version`).
+- **Git.** Check with `git --version`.
+- Internet the first time only, for the packages and the Whisper model (about 75 MB). After that NEX works offline.
+- Access to this repo. It's private, so ask the owner to add your GitHub account.
+
+### Step 1: Download the code
 ```bash
-python -m nex.try_mic            # --list shows microphones, --device N picks one, --model base, --wav clip.wav
+git clone https://github.com/andrewemmanuelyohanson31-ship-it/NEXSpeech.git
+cd NEXSpeech
 ```
 
-## Run
-```bash
+### Step 2: Install
+Windows (PowerShell):
+```powershell
 python -m venv .venv
-.venv\Scripts\activate            # macOS/Linux: source .venv/bin/activate
+.venv\Scripts\activate
 pip install -r requirements.txt
-python -m nex                     # open http://127.0.0.1:8000  (API docs: /docs)
 ```
-The page at `/` is the **live session screen**: start, pause and stop, live transcript (partial and final), a badge on each recognized command, latency, slide number, mic level and a session summary (latency P50/P95, RTF). It works offline, with no CDN or web fonts.
-The first session downloads the Whisper model once. After that NEX works offline.
-- **Windows:** keys work out of the box. **macOS:** allow Terminal/Python under *Accessibility*.
-- Click the presentation window once before speaking, because keys go to the focused window.
-- `NEX_DRY_RUN=1` logs actions without pressing keys (for demos and tests).
-- The server binds to `127.0.0.1` only, since it can press keys on the machine.
+Mac:
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+- If Windows says "running scripts is disabled", run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once, then activate again.
+- Every new terminal needs the `activate` line again before the commands below.
+- **Mac only:** in System Settings → Privacy & Security, give your Terminal app **Microphone** and **Accessibility** permission. Without them NEX can't hear you or press keys.
+
+### Step 3: Check the install
+```bash
+python -m pytest tests
+```
+You should see `69 passed`. If not, stop here and send the error to the team.
+
+### Step 4: Find your microphone
+```bash
+python -m nex.try_mic --list
+```
+Note the number of the mic you want. The one marked `<- default` is used unless you choose another.
+
+### Step 5: Test 1, in the terminal (no slides, no keys pressed)
+```bash
+python -m nex.try_mic                 # add --device 3 to use mic number 3
+```
+1. Wait for `Loaded in … s` (about 15 s; the first time it also downloads the model).
+2. **Stay quiet** until it says `Listening`. It's measuring the room noise.
+3. Say each of these on its own, with a short pause after each one:
+   - "lanjut", "next", "slide berikutnya" → should show `NEXT slide`
+   - "balik", "previous" → should show `PREVIOUS slide`
+   - "slide tiga", "slide 5", "balik ke slide dua" → should show `GO TO slide …`
+4. Then say normal sentences that contain command words, such as "dan selanjutnya kita bahas fitur" or "kita kembali ke topik". These should show `none`.
+5. Press **Ctrl+C** to stop. It prints the average, best and worst time.
+
+Each line of output means:
+- `YOU SAID`: what Whisper heard
+- `ACTION`: what NEX would do with the slides
+- `TIME`: how long after you stopped talking the action was ready, split into waiting for silence and recognition time
+- `RTF`: processing time ÷ audio length; below 1 means it keeps up with real time
+
+### Step 6: Test 2, the live web page (still no keys pressed)
+Start the server in **dry-run mode**, so it only shows what it would do:
+```powershell
+$env:NEX_DRY_RUN="1"        # Windows PowerShell   (Mac: export NEX_DRY_RUN=1)
+python -m nex
+```
+1. Open **http://127.0.0.1:8000** in your browser.
+2. Optionally, enter how many slides your deck has in "Jumlah slide".
+3. Click **Mulai sesi**, then stay quiet until the status turns green and says **Mendengarkan**.
+4. Speak the commands from Step 5. You should see:
+   - grey italic text while you talk (partial transcription)
+   - each finished sentence added to **Transkrip live**
+   - an orange label on each recognized command, and the slide number and **Latensi** updating
+5. Click **Akhiri sesi** to see the summary: duration, number of commands, latency P50/P95 and real-time factor.
+6. Stop the server with **Ctrl+C** in the terminal.
+
+### Step 7: Test 3, with real slides
+1. Open a **new terminal** so dry-run mode is off. Go to the folder, activate (Step 2), and run `python -m nex`.
+2. Open your deck in PowerPoint or Google Slides and start the slideshow.
+3. In the browser, open http://127.0.0.1:8000 and click **Mulai sesi**. Wait for **Mendengarkan**.
+4. **Click the slideshow window once.** Keys go to whichever window is in front.
+5. Say "lanjut", "balik" and "slide tiga", and watch the slides move.
+6. For **Canva**: if "slide 5" doesn't jump, switch to arrow mode. Stop the session, open http://127.0.0.1:8000/docs, then use **PUT /api/settings** → *Try it out* with `{"jump_mode": "arrows"}`.
+
+### Step 8: Try other settings (optional)
+- More accurate but slower: `python -m nex.try_mic --model base`
+- Auto-detect Indonesian or English: `python -m nex.try_mic --language ""`
+- For the web page, change the same settings with **PUT /api/settings** on `/docs`, for example `{"model": "base"}` or `{"language": ""}`. Only do this while no session is running.
+- If `TIME` goes above about 2 s or `RTF` above 1, your laptop is too slow for that model. Go back to `tiny`.
+
+### Step 9: Share what you found
+Send the team:
+- your laptop (CPU, Windows or Mac), microphone, and the model you used
+- which commands worked and which didn't, with the exact `YOU SAID` text when NEX misheard you
+- your average `TIME` from Step 5
+- any normal sentence that moved a slide by mistake
+- which presentation apps worked in Step 7
+
+These notes are for the team's own testing. The report's experiments and user tests have their own procedure; see `NEX_Step_by_Step_Guide.md`.
+
+### If something goes wrong
+- **Nothing happens when you talk:** the wrong mic is selected (Step 4), or there was noise during the quiet start. Restart and stay quiet until `Listening`.
+- **Text appears but the slide doesn't move:** dry-run mode is still on (open a new terminal), the slideshow isn't the window in front, or on Mac the Accessibility permission is missing.
+- **"Address already in use":** another NEX server is still running. Close that terminal.
+- **`pip install` fails:** check that your Python version is 3.10–3.12.
+- **Very slow:** use `--model tiny` (the default) and close other heavy apps.
+
+### Good to know
+- NEX only accepts connections from your own computer, because it can press keys.
+- Only text is saved (`data/nex.db`); audio is never saved by the app.
+- The first session downloads the Whisper model once; after that everything works without internet.
 
 ## Speech-to-action model (`nex/commands.py`)
 The model has two stages: **ASR → rule-based intent classifier.** Each *finished utterance* is classified as:
