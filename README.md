@@ -97,6 +97,6 @@ On this CPU only `tiny` stays real-time, so it is the default (change it in Peng
 ```bash
 python -m pytest tests     # 69 tests: parser + explanation phrases, segmenter + 8 s cut, API, live page, full voice session with a fake mic
 ```
-See `REQUIREMENTS_CHECK.md` for how the project maps to the final-project brief.
+See `REPORT.md` for requirements, progress, and what the team still has to do.
 
 See `NEX_Step_by_Step_Guide.md` for the full project plan (report structure, user testing, AI usage log).
