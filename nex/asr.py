@@ -49,6 +49,7 @@ class StreamingRecognizer:
         self.buf, self.prev = [], None
         self.silent = self.speech_s = self.since_partial = 0.0
         self.last_speech_t = None
+        self.after_cut = False  # True while the current utterance began right after a forced max_utt_s cut
 
     def calibrated(self):
         return self.threshold is not None
@@ -71,6 +72,8 @@ class StreamingRecognizer:
             self.last_speech_t = now
         elif self.buf:
             self.silent += BLOCK_S
+        else:
+            self.after_cut = False  # a real pause happened, so the next utterance is a fresh one
         if self.buf or speaking:
             self.buf.append(block)
             self.since_partial += BLOCK_S
@@ -80,7 +83,7 @@ class StreamingRecognizer:
             return []
         dur = len(self.buf) * BLOCK_S
         if self.silent >= self.silence_s or dur >= self.max_utt_s:
-            return self._finish()
+            return self._finish(forced=self.silent < self.silence_s)
         if self.since_partial >= self.partial_every:
             self.since_partial = 0.0
             t0 = time.perf_counter()
@@ -94,9 +97,13 @@ class StreamingRecognizer:
     def flush(self):
         return self._finish() if self.buf else []
 
-    def _finish(self):
+    def _finish(self, forced=False):
         audio, speech_s, last_speech_t = np.concatenate(self.buf), self.speech_s, self.last_speech_t
+        after_cut = self.after_cut
         self.reset()
+        # Commands come after a real pause. The piece that continues a forced cut ("...berikutnya.")
+        # is the tail of a long sentence, so it gets flagged and never triggers an action.
+        self.after_cut = forced
         if speech_s < self.min_utt_s:  # a cough or click: skip, Whisper would hallucinate on it
             return []
         t0 = time.perf_counter()
@@ -105,4 +112,4 @@ class StreamingRecognizer:
         if not text:
             return []
         return [{"type": "final", "text": text, "audio_s": len(audio) / SR, "infer_s": infer_s,
-                 "rtf": infer_s / (len(audio) / SR), "speech_end_t": last_speech_t}]
+                 "rtf": infer_s / (len(audio) / SR), "speech_end_t": last_speech_t, "after_cut": after_cut}]

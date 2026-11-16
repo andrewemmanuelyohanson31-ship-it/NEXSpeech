@@ -51,6 +51,20 @@ def test_max_utterance_forces_final():
     assert sum(e["type"] == "final" for e in ev) >= 2
 
 
+def test_tail_after_forced_cut_is_flagged():
+    # 10 s nonstop: cut at 4 s, cut again at 8 s, then the 2 s tail ends with a real pause
+    rec, ev = run(quiet(8) + loud(40) + quiet(4), max_utt_s=4.0)
+    finals = [e for e in ev if e["type"] == "final"]
+    assert [f["after_cut"] for f in finals] == [False, True, True]
+
+
+def test_real_pause_clears_the_cut_flag():
+    # cut at 4 s, then a pause, then a fresh short command: that one must count
+    rec, ev = run(quiet(8) + loud(16) + quiet(4) + loud(2) + quiet(4), max_utt_s=4.0)
+    finals = [e for e in ev if e["type"] == "final"]
+    assert finals[-1]["after_cut"] is False
+
+
 def test_silence_alone_never_transcribes():
     rec, ev = run(quiet(40))
     assert ev == [] and rec.transcribe.calls == []

@@ -46,7 +46,7 @@ def run_clip(transcriber, audio, silence_s=0.6, chunk_s=1.0):
                 partials += 1
                 continue
             finals.append(ev)
-            a = parse(ev["text"])
+            a = None if ev["after_cut"] else parse(ev["text"])  # same rule as the live engine
             if a:
                 fired.append((a, clock - ev["speech_end_t"]))
     audio_s = len(blocks + tail) * BLOCK_S
@@ -77,7 +77,10 @@ if __name__ == "__main__":
         res = run_clip(t, load_wav(os.path.join(base, r["file"])), a.silence_s, a.chunk_s)
         exp = r["expected"] or "none"
         got = res["actions"][0] if res["actions"] else "none"
-        row = {**r, **res, "got": got, "correct": got == exp, "actions": " ".join(res["actions"])}
+        clip = jiwer.process_words(norm(r["reference"]) or "-", norm(res["hyp"]))
+        row = {**r, **res, "got": got, "correct": got == exp, "actions": " ".join(res["actions"]),
+               # per-clip error counts for the error-analysis table (brief section 14)
+               "wer": round(clip.wer, 3), "S": clip.substitutions, "D": clip.deletions, "I": clip.insertions}
         by_cond[r["condition"]].append(row)
         out_rows.append(row)
         print(f"{r['condition']:<12} {exp:<8} -> {got:<8} | {r['reference'][:40]!r} => {res['hyp'][:40]!r}")

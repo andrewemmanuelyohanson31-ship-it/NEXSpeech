@@ -26,8 +26,9 @@ python -m nex.try_mic            # --list shows microphones, --device N picks on
 python -m venv .venv
 .venv\Scripts\activate            # macOS/Linux: source .venv/bin/activate
 pip install -r requirements.txt
-python -m nex                     # http://127.0.0.1:8000  (API docs: /docs)
+python -m nex                     # open http://127.0.0.1:8000  (API docs: /docs)
 ```
+The page at `/` is the **live session screen**: start, pause and stop, live transcript (partial and final), a badge on each recognized command, latency, slide number, mic level and a session summary (latency P50/P95, RTF). It works offline, with no CDN or web fonts.
 The first session downloads the Whisper model once. After that NEX works offline.
 - **Windows:** keys work out of the box. **macOS:** allow Terminal/Python under *Accessibility*.
 - Click the presentation window once before speaking, because keys go to the focused window.
@@ -39,15 +40,20 @@ The model has two stages: **ASR → rule-based intent classifier.** Each *finish
 
 | Say | Action |
 |---|---|
-| next, lanjut, lanjutkan, berikutnya, selanjutnya, maju | `next` (→) |
-| back, previous, balik, kembali, sebelumnya, mundur | `prev` (←) |
+| next, lanjut, lanjutkan, next slide, slide berikutnya, slide selanjutnya, oke lanjut | `next` (→) |
+| back, balik, previous, previous slide, slide sebelumnya, kembali ke slide sebelumnya | `prev` (←) |
 | slide 2, slide dua, slide ke-5, slide dua belas, go to slide seven, balik ke slide 3 | `goto N` (types N, then Enter) |
 
-Design decisions:
-- **Utterances of 5 or more words are ignored**, so "the next topic is…" during a talk never changes the slide.
-- **Commands fire only on final text.** Partial text is re-transcribed every second, so acting on it could fire one "next" twice.
+Built for real talks, where command words also appear inside explanations:
+1. **The whole utterance must be a command.** The only extra words allowed are fillers (oke, ya, kita, ke, tolong, please, go, to…). "kembali ke topik", "next step" and "di slide dua tadi" do nothing.
+2. **Everyday explanation words count only next to "slide".** *selanjutnya, berikutnya, maju, sebelumnya, kembali, mundur* alone do nothing. "slide selanjutnya" works.
+3. **The tail of a long sentence never triggers.** Speech is cut every 8 s. A piece that continues a cut, rather than starting after a real pause, is flagged `after_cut` and ignored.
+
+Other rules:
+- Commands fire only on **final** text, never on partial text, so one "next" can't fire twice.
 - **Fuzzy matching** (`difflib`, cutoff 0.8) absorbs small ASR slips: lanjud → lanjut, bali → balik, slaid → slide.
-- "slide N" takes priority over next/back ("back to slide 3" → slide 3). A 1 s cooldown follows each voice action. A jump past the last slide is rejected.
+- "slide N" takes priority over next/back. A 1 s cooldown follows each voice action, and jumps past the last slide are rejected.
+- The trade-off is a **brief pause before and after a command**. `tests/test_commands.py` lists 20 explanation phrases that must never move a slide.
 
 ## Real-time pipeline (`nex/asr.py`)
 - Calibrates to room noise for 2 s, then uses an energy (RMS) threshold to find speech.
@@ -89,7 +95,8 @@ On this CPU only `tiny` stays real-time, so it is the default (change it in Peng
 
 ## Tests
 ```bash
-python -m pytest tests     # 38 tests: parser, streaming segmenter, API + full voice session with a fake mic
+python -m pytest tests     # 69 tests: parser + explanation phrases, segmenter + 8 s cut, API, live page, full voice session with a fake mic
 ```
+See `REQUIREMENTS_CHECK.md` for how the project maps to the final-project brief.
 
 See `NEX_Step_by_Step_Guide.md` for the full project plan (report structure, user testing, AI usage log).

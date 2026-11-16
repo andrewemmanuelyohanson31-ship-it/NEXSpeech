@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nex · Sesi Live</title>
+<link rel="icon" href="data:,">
+<style>
+  /* No external fonts or CDNs: NEX must work offline in a classroom. Colors from the Figma live screen. */
+  :root {
+    --brand: #FF6A00; --brand-soft: #FFF3EA; --ink: #141A2B; --muted: #6B7280; --bg: #F7F7FB;
+    --surface: #FFFFFF; --border: #ECEAF3; --ok: #0E9F6E; --ok-soft: #DEF7EC; --danger: #E5484D;
+    --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; --mono: ui-monospace, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font);
+         min-height: 100vh; display: flex; flex-direction: column; }
+  main { flex: 1; width: 100%; }
+  header, footer { display: flex; align-items: center; gap: 12px; padding: 12px 24px; background: var(--surface);
+                   border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  footer { border-top: 1px solid var(--border); border-bottom: 0; position: sticky; bottom: 0; }
+  .brand { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 18px; }
+  .logo { width: 28px; height: 28px; border-radius: 8px; background: var(--brand); color: #fff;
+          display: grid; place-items: center; font-size: 14px; }
+  .pill { padding: 4px 10px; border-radius: 999px; font-size: 13px; background: var(--border); color: var(--muted); }
+  .pill.live { background: var(--ok-soft); color: var(--ok); }
+  .pill.live::before { content: "● "; }
+  .chip { padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; background: var(--bg); }
+  .timer { background: var(--brand); color: #fff; border: 0; font-family: var(--mono); }
+  .spacer { flex: 1; }
+  main { display: grid; grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr); gap: 20px; padding: 20px 24px;
+         max-width: 1280px; margin: 0 auto; }
+  @media (max-width: 800px) { main { grid-template-columns: 1fr; padding: 16px; } }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px; }
+  .label { font-size: 12px; font-weight: 700; letter-spacing: .06em; color: var(--muted); text-transform: uppercase;
+           margin: 0 0 12px; }
+  #transcript { list-style: none; margin: 0; padding: 0; max-height: 58vh; overflow-y: auto; }
+  #transcript li { display: grid; grid-template-columns: 52px 1fr; gap: 10px; padding: 10px 0;
+                   border-bottom: 1px solid var(--border); }
+  #transcript time { font-family: var(--mono); font-size: 12px; color: var(--muted); padding-top: 3px; }
+  .badge { display: inline-block; margin-top: 6px; padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+  .badge.cmd { background: var(--brand-soft); color: var(--brand); }
+  .badge.skip { background: var(--bg); color: var(--muted); font-weight: 400; }
+  #partial { min-height: 28px; margin-top: 10px; color: var(--muted); font-style: italic; }
+  .big { font-size: 40px; font-weight: 800; margin: 4px 0; }
+  .muted { color: var(--muted); font-size: 14px; }
+  .meter { height: 8px; border-radius: 4px; background: var(--border); overflow: hidden; }
+  .meter > div { height: 100%; width: 0; background: var(--ok); transition: width .1s; }
+  aside { display: grid; gap: 20px; align-content: start; }
+  label.field { display: grid; gap: 6px; font-size: 13px; color: var(--muted); margin-bottom: 10px; }
+  input { font: inherit; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; color: var(--ink); }
+  button { font: inherit; font-size: 14px; padding: 9px 16px; border-radius: 8px; border: 1px solid var(--border);
+           background: var(--surface); color: var(--ink); cursor: pointer; }
+  button.primary { background: var(--brand); border-color: var(--brand); color: #fff; font-weight: 600; }
+  button.danger { color: var(--danger); border-color: #F5C2C3; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  button:focus-visible, input:focus-visible { outline: 3px solid #FFB27A; outline-offset: 2px; }
+  #notice { display: none; margin: 0; padding: 10px 24px; background: var(--brand-soft); color: #9A3D00; font-size: 14px; }
+  dl { display: grid; grid-template-columns: auto auto; gap: 6px 12px; margin: 0; font-size: 14px; }
+  dt { color: var(--muted); } dd { margin: 0; text-align: right; font-family: var(--mono); }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><span class="logo" aria-hidden="true">N</span>Nex</div>
+  <span id="state" class="pill" role="status">Belum mulai</span>
+  <div class="spacer"></div>
+  <span class="chip">Latensi <b id="latency">–</b></span>
+  <span class="chip">Slide <b id="slide">–</b></span>
+  <span class="chip timer" id="timer" aria-label="Durasi sesi">00:00</span>
+</header>
+<p id="notice" role="alert"></p>
+
+<main>
+  <section class="card" aria-labelledby="t-label">
+    <h2 class="label" id="t-label">Transkrip live</h2>
+    <ol id="transcript" aria-live="polite"></ol>
+    <div id="partial" aria-hidden="true"></div>
+  </section>
+
+  <aside>
+    <section class="card" aria-labelledby="c-label">
+      <h2 class="label" id="c-label">Perintah terakhir</h2>
+      <div class="big" id="lastCmd">–</div>
+      <div class="muted" id="lastCmdInfo">Ucapkan "lanjut", "balik", atau "slide tiga".</div>
+    </section>
+
+    <section class="card" aria-labelledby="m-label">
+      <h2 class="label" id="m-label">Level suara</h2>
+      <div class="meter" role="meter" aria-label="Level mikrofon" aria-valuemin="0" aria-valuemax="100"><div id="level"></div></div>
+    </section>
+
+    <section class="card" aria-labelledby="s-label">
+      <h2 class="label" id="s-label">Sesi</h2>
+      <label class="field">Judul<input id="title" value="Latihan presentasi" maxlength="200"></label>
+      <label class="field">Jumlah slide (opsional)<input id="total" type="number" min="1" max="500" placeholder="mis. 12"></label>
+      <div id="summary" hidden>
+        <h2 class="label">Ringkasan</h2>
+        <dl id="summaryList"></dl>
+      </div>
+    </section>
+  </aside>
+</main>
+
+<footer>
+  <button class="primary" id="start">Mulai sesi</button>
+  <button id="pause" disabled>Jeda</button>
+  <button class="danger" id="stop" disabled>Akhiri sesi</button>
+  <div class="spacer"></div>
+  <button id="prev" disabled aria-label="Slide sebelumnya">← Mundur</button>
+  <button id="next" disabled aria-label="Slide berikutnya">Berikutnya →</button>
+</footer>
+
+<script>
+const $ = id => document.getElementById(id);
+const STATES = { idle: "Belum mulai", starting: "Memulai…", calibrating: "Diam sebentar… (kalibrasi)",
+                 listening: "Mendengarkan", paused: "Dijeda", stopped: "Selesai" };
+const ACTIONS = { next: "Slide berikutnya", prev: "Slide sebelumnya", goto: "Ke slide" };
+let state = "idle", startedAt = null, lastFinal = null;
+
+function setState(s) {
+  state = s;
+  $("state").textContent = STATES[s] || s;
+  $("state").classList.toggle("live", s === "listening");
+  const running = !["idle", "stopped"].includes(s);
+  $("start").disabled = running;
+  $("stop").disabled = $("prev").disabled = $("next").disabled = !running;
+  $("pause").disabled = !["listening", "paused"].includes(s);
+  $("pause").textContent = s === "paused" ? "Lanjutkan" : "Jeda";
+  if (s === "calibrating") notice("Diam 2 detik: Nex sedang mengukur kebisingan ruangan.");
+  else if (s === "listening") notice("Klik jendela presentasi sekarang agar tombol slide terkirim ke sana.");
+  else if (s !== "starting") notice("");
+}
+function notice(msg) { $("notice").textContent = msg; $("notice").style.display = msg ? "block" : "none"; }
+function clock() {
+  if (!startedAt) return "00:00";
+  const s = Math.floor((Date.now() - startedAt) / 1000);
+  return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+}
+setInterval(() => { if (startedAt && state !== "stopped") $("timer").textContent = clock(); }, 500);
+function slideText(slide, total) { return slide ? (total ? `${slide} / ${total}` : `${slide}`) : "–"; }
+
+function addFinal(ev) {
+  const li = document.createElement("li");
+  const t = document.createElement("time"); t.textContent = clock();
+  const body = document.createElement("div");
+  const p = document.createElement("div"); p.textContent = ev.text;  // textContent: transcript is never HTML
+  body.append(p);
+  if (ev.after_cut) body.append(badge("lanjutan kalimat panjang, diabaikan", "skip"));
+  li.append(t, body);
+  $("transcript").append(li);
+  li.scrollIntoView({ block: "end" });
+  lastFinal = body;
+}
+function badge(text, cls) { const b = document.createElement("span"); b.className = `badge ${cls}`; b.textContent = text; return b; }
+
+function onEvent(ev) {
+  switch (ev.type) {
+    case "state":
+      setState(ev.state);
+      if (ev.slide) $("slide").textContent = slideText(ev.slide, ev.slides_total);
+      if (ev.state === "stopped" && ev.session_id) showSummary(ev.session_id);
+      break;
+    case "partial": $("partial").textContent = ev.text + " …"; break;
+    case "final": $("partial").textContent = ""; addFinal(ev); break;
+    case "command": {
+      $("slide").textContent = slideText(ev.slide, ev.slides_total);
+      $("lastCmd").textContent = `→ ${ev.slide}`;
+      const lat = ev.latency != null ? `${ev.latency.toFixed(2)} s` : null;
+      $("lastCmdInfo").textContent = `${ACTIONS[ev.action]} · ${ev.source === "voice" ? "suara" : "tombol"}${lat ? " · " + lat : ""}`;
+      if (lat) $("latency").textContent = lat;
+      if (ev.source === "voice" && lastFinal) lastFinal.append(badge(`${ACTIONS[ev.action]} → ${ev.slide}`, "cmd"));
+      break;
+    }
+    case "rejected":
+      $("lastCmdInfo").textContent = `Slide ${ev.slide} tidak ada, perintah diabaikan.`;
+      if (ev.source === "voice" && lastFinal) lastFinal.append(badge(`slide ${ev.slide} tidak ada`, "skip"));
+      break;
+    case "level": {
+      const pct = Math.round(Math.min(100, ev.rms * 1500));
+      $("level").style.width = pct + "%";
+      $("level").parentElement.setAttribute("aria-valuenow", pct);
+      break;
+    }
+    case "error": notice("Masalah mikrofon: " + ev.message); break;
+  }
+}
+
+function connect() {
+  const ws = new WebSocket(`ws://${location.host}/ws`);
+  ws.onmessage = m => onEvent(JSON.parse(m.data));
+  ws.onclose = () => setTimeout(connect, 1000);  // server restarted: reconnect quietly
+}
+connect();
+
+async function api(path, body) {
+  const r = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify(body || {}) });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(typeof data.detail === "string" ? data.detail : r.statusText);
+  return data;
+}
+async function run(fn) { try { await fn(); } catch (e) { notice(e.message); } }
+
+$("start").onclick = () => run(async () => {
+  $("transcript").replaceChildren(); $("summary").hidden = true; $("lastCmd").textContent = "–";
+  setState("starting");
+  notice("Memuat model pengenal suara… (pertama kali bisa sekitar 15 detik)");
+  const total = parseInt($("total").value, 10);
+  try {
+    const info = await api("/api/session/start", { title: $("title").value || "Sesi", slides_total: total > 0 ? total : null });
+    startedAt = Date.now();
+    $("slide").textContent = slideText(info.slide, info.slides_total);
+  } catch (e) { setState("idle"); throw e; }
+});
+$("pause").onclick = () => run(() => api(state === "paused" ? "/api/session/resume" : "/api/session/pause"));
+$("stop").onclick = () => run(() => api("/api/session/stop"));
+$("prev").onclick = () => run(() => api("/api/session/action", { action: "prev" }));
+$("next").onclick = () => run(() => api("/api/session/action", { action: "next" }));
+
+async function showSummary(id) {
+  const s = await (await fetch(`/api/sessions/${id}`)).json();
+  const f = (x, unit = " s") => x == null ? "–" : x.toFixed(2) + unit;
+  const rows = [["Durasi", f(s.duration_s)], ["Perintah suara", s.voice_commands], ["Perintah tombol", s.manual_commands],
+                ["Latensi P50", f(s.latency_p50)], ["Latensi P95", f(s.latency_p95)], ["Real-time factor", f(s.rtf, "")]];
+  $("summaryList").replaceChildren(...rows.flatMap(([k, v]) => {
+    const dt = document.createElement("dt"); dt.textContent = k;
+    const dd = document.createElement("dd"); dd.textContent = v;
+    return [dt, dd];
+  }));
+  $("summary").hidden = false;
+}
+</script>
+</body>
+</html>

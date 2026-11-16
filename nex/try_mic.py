@@ -15,7 +15,7 @@ import wave
 import numpy as np
 
 from .asr import BLOCK_S, SR, StreamingRecognizer, Transcriber
-from .commands import MAX_WORDS, parse
+from .commands import parse
 
 N = int(SR * BLOCK_S)
 
@@ -47,13 +47,13 @@ class WavSource:
         return self.blocks[self.i - 1]
 
 
-def describe(text):
-    a = parse(text)
+def describe(ev):
+    if ev.get("after_cut"):
+        return "none (tail of a long sentence cut at 8 s, not after a real pause)"
+    a = parse(ev["text"])
     if a:
         return {"next": "NEXT slide", "prev": "PREVIOUS slide"}.get(a[0]) or f"GO TO slide {a[1]}"
-    if len(text.split()) > MAX_WORDS:
-        return f"none (more than {MAX_WORDS} words = normal speech, ignored on purpose)"
-    return "none (not a command)"
+    return "none (normal speech, not a command on its own)"
 
 
 def main():
@@ -98,7 +98,7 @@ def main():
         latencies.append(total)
         print(f"\r{' ' * (width + 6)}\r", end="")
         print(f'  YOU SAID : "{ev["text"]}"')
-        print(f"  ACTION   : {describe(ev['text'])}")
+        print(f"  ACTION   : {describe(ev)}")
         print(f"  TIME     : {total:.2f} s after you stopped talking "
               f"(= {total - ev['infer_s']:.2f} s waiting for silence + {ev['infer_s']:.2f} s recognition)"
               f"  | {ev['audio_s']:.1f} s of audio, RTF {ev['rtf']:.2f}\n", flush=True)

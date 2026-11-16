@@ -65,7 +65,8 @@ class Engine:
         if ev["type"] == "partial":
             return
         self.db.log_event(self.session_id, ev)
-        action = parse(ev["text"])  # commands fire on finals only, so one "next" can't fire twice
+        # finals only (one "next" can't fire twice), and never the tail of a forced 8 s cut
+        action = None if ev.get("after_cut") else parse(ev["text"])
         if action and time.perf_counter() - self.last_voice_action >= COOLDOWN_S:
             self.last_voice_action = time.perf_counter()
             self.act(action, "voice", speech_end_t, ev["text"])

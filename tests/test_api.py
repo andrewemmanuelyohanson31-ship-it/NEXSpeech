@@ -52,6 +52,11 @@ def utterances(n):
     return quiet(8) + sum((loud(2) + quiet(4) for _ in range(n)), [])
 
 
+def test_live_page_is_served():
+    r = TestClient(app).get("/")
+    assert r.status_code == 200 and "Transkrip live" in r.text
+
+
 def test_scripts_crud_and_validation():
     c = TestClient(app)
     s = c.post("/api/scripts", json={"title": "Pengantar SR", "platform": "PowerPoint",
@@ -105,6 +110,22 @@ def test_voice_session_end_to_end():
         assert summary["ended"] is not None
         assert c.post("/api/session/pause").status_code == 409
         assert c.get(f"/api/sessions/{summary['id']}").json()["events"]
+
+
+def test_tail_of_forced_cut_does_not_move_slide(monkeypatch):
+    """12 s of nonstop talk is cut at 8 s; even if the tail reads "berikutnya"-like "lanjut", no action."""
+    monkeypatch.setattr("nex.engine.COOLDOWN_S", 0)  # so only the cut rule can block the 2nd action
+    fake = FakeTranscriber()
+    fake.script = ["lanjut"]
+    app.state.transcriber_factory = lambda **kw: fake
+    app.state.transcriber = None
+    app.state.mic_factory = FakeMic(quiet(8) + loud(48) + quiet(4))
+    with TestClient(app) as c:
+        c.post("/api/session/start", json={"title": "long talk"})
+        sid = app.state.engine.session_id
+        assert wait_for(lambda: sum(e["type"] == "final"
+                                    for e in c.get(f"/api/sessions/{sid}").json()["events"]) >= 2)
+        assert c.post("/api/session/stop").json()["voice_commands"] == 1  # the first part only
 
 
 def test_long_sentence_does_not_move_slide():

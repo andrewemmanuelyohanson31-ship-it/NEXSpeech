@@ -197,7 +197,12 @@ def parse(text):
             return ("prev", None)
     return None
 ```
-The implemented version is `nex/commands.py`. It adds fuzzy matching for small ASR slips ("lanjud" → lanjut) and "dua belas" = 12. Its 29 test cases are in `tests/test_commands.py`; run them with `python -m pytest tests`.
+The implemented version, `nex/commands.py`, is **stricter than the sketch above**, which turned out to be too loose. In a test, 12 of 16 everyday explanation phrases ("dan selanjutnya", "kembali ke topik") changed the slide. Now:
+1. The whole utterance must be a command, plus fillers.
+2. Everyday words (selanjutnya, berikutnya, kembali, sebelumnya, maju, mundur) count only next to "slide".
+3. The tail of a sentence cut at 8 s never triggers.
+
+It also adds fuzzy matching for small ASR slips ("lanjud" → lanjut) and "dua belas" = 12. See `tests/test_commands.py`.
 
 **Key design decision (explain it in the report):** the `MAX_WORDS = 4` rule stops false slide changes when you say "next" or "kembali" in normal speech. The trade-off is that the presenter must pause briefly before and after a command. Measure it: count **false triggers per 10 minutes** of normal speaking. If it is still too high, add a wake word ("Nex, lanjut").
 Spoken numbers go up to 12. Whisper usually writes larger numbers as digits ("slide 15"), which already works. Add more Indonesian number words if testing shows they are needed.
