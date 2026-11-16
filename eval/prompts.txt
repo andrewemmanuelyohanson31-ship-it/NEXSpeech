@@ -1,0 +1,15 @@
+next|lanjut
+next|next
+next|berikutnya
+next|lanjut slide
+prev|balik
+prev|back
+prev|sebelumnya
+prev|previous
+goto:2|slide dua
+goto:3|slide 3
+goto:5|slide ke lima
+goto:7|go to slide seven
+goto:4|balik ke slide empat
+goto:12|slide dua belas
+none|Selamat pagi semuanya. Hari ini kita akan membahas bagaimana komputer bisa mengenali suara. Selanjutnya kita lihat tahap ekstraksi fitur, lalu kita kembali ke contoh di awal.

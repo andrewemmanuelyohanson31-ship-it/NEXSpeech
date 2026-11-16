@@ -1,0 +1,10 @@
+faster-whisper>=1.0
+numpy
+sounddevice
+pynput
+fastapi
+uvicorn[standard]
+jiwer>=3.0
+# tests
+pytest
+httpx
