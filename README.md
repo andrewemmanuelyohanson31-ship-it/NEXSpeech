@@ -15,6 +15,12 @@ Mic ─► sounddevice (16 kHz, 0.25 s blocks) ─► StreamingRecognizer ─►
                                    pynput: → / ← / "N⏎"                       SQLite (text only)
 ```
 
+## Quick try (no slides, no server)
+Talk and see what NEX heard, what it would do, and how long it took. No keys are pressed.
+```bash
+python -m nex.try_mic            # --list shows microphones, --device N picks one, --model base, --wav clip.wav
+```
+
 ## Run
 ```bash
 python -m venv .venv
