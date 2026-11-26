@@ -53,8 +53,13 @@ def utterances(n):
 
 
 def test_live_page_is_served():
-    r = TestClient(app).get("/")
+    c = TestClient(app)
+    r = c.get("/")
     assert r.status_code == 200 and "Transkrip live" in r.text
+    logo = c.get("/logo.png")
+    assert logo.status_code == 200 and logo.headers["content-type"].startswith("image/png")
+    for font in ("/fonts/InterVariable.woff2", "/fonts/InterVariable-Italic.woff2"):
+        assert c.get(font).status_code == 200
 
 
 def test_scripts_crud_and_validation():
