@@ -82,7 +82,7 @@
     <section class="card" aria-labelledby="c-label">
       <h2 class="label" id="c-label">Perintah terakhir</h2>
       <div class="big" id="lastCmd">–</div>
-      <div class="muted" id="lastCmdInfo">Ucapkan "lanjut", "balik", atau "slide tiga".</div>
+      <div class="muted" id="lastCmdInfo">Ucapkan "lanjut", "balik", "slide tiga", atau "slide terakhir".</div>
     </section>
 
     <section class="card" aria-labelledby="m-label">
@@ -128,6 +128,7 @@ function setState(s) {
   $("pause").disabled = !["listening", "paused"].includes(s);
   $("pause").textContent = s === "paused" ? "Lanjutkan" : "Jeda";
   if (s === "calibrating") notice("Diam 2 detik: Nex sedang mengukur kebisingan ruangan.");
+  else if (s === "paused") notice("Dijeda: Nex tidak menjalankan perintah. Ucapkan \"mulai\" atau klik Lanjutkan.");
   else if (s === "listening") notice("Klik jendela presentasi sekarang agar tombol slide terkirim ke sana.");
   else if (s !== "starting") notice("");
 }
@@ -172,10 +173,18 @@ function onEvent(ev) {
       if (ev.source === "voice" && lastFinal) lastFinal.append(badge(`${ACTIONS[ev.action]} → ${ev.slide}`, "cmd"));
       break;
     }
-    case "rejected":
-      $("lastCmdInfo").textContent = `Slide ${ev.slide} tidak ada, perintah diabaikan.`;
-      if (ev.source === "voice" && lastFinal) lastFinal.append(badge(`slide ${ev.slide} tidak ada`, "skip"));
+    case "rejected": {
+      const why = ev.reason || `Slide ${ev.slide} tidak ada, perintah diabaikan.`;
+      $("lastCmdInfo").textContent = why;
+      if (ev.source === "voice" && lastFinal) lastFinal.append(badge(ev.reason ? "slide terakhir tidak diketahui" : `slide ${ev.slide} tidak ada`, "skip"));
       break;
+    }
+    case "control": {  // spoken "stop/berhenti" or "mulai"
+      const label = ev.action === "pause" ? "Pendengaran dijeda (ucapkan \"mulai\")" : "Mendengarkan lagi";
+      $("lastCmdInfo").textContent = label;
+      if (lastFinal) lastFinal.append(badge(label, "cmd"));
+      break;
+    }
     case "level": {
       const pct = Math.round(Math.min(100, ev.rms * 1500));
       $("level").style.width = pct + "%";

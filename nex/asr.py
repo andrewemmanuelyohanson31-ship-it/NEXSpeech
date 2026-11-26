@@ -6,7 +6,8 @@ import numpy as np
 
 SR = 16000
 BLOCK_S = 0.25
-PROMPT = "next, lanjut, back, balik, previous, sebelumnya, slide dua, slide 3"
+PROMPT = ("next, lanjut, back, balik, previous, sebelumnya, slide dua, slide 3, "
+          "slide pertama, slide terakhir, first slide, last slide, stop, berhenti, mulai")
 NOISE_FLOOR = 0.003  # minimum RMS threshold so a dead-silent room doesn't make every click "speech"
 
 

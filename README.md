@@ -52,7 +52,7 @@ pip install -r requirements.txt
 ```bash
 python -m pytest tests
 ```
-You should see `69 passed`. If not, stop here and send the error to the team.
+You should see `96 passed`. If not, stop here and send the error to the team.
 
 ### Step 4: Find your microphone
 ```bash
@@ -69,7 +69,9 @@ python -m nex.try_mic                 # add --device 3 to use mic number 3
 3. Say each of these on its own, with a short pause after each one:
    - "lanjut", "next", "slide berikutnya" → should show `NEXT slide`
    - "balik", "previous" → should show `PREVIOUS slide`
-   - "slide tiga", "slide 5", "balik ke slide dua" → should show `GO TO slide …`
+   - "slide tiga", "slide 5", "balik ke slide dua", "slide pertama" → should show `GO TO slide …`
+   - "slide terakhir" → should show `LAST slide`
+   - "stop" → should show `PAUSE listening`, and "mulai" → `RESUME listening`
 4. Then say normal sentences that contain command words, such as "dan selanjutnya kita bahas fitur" or "kita kembali ke topik". These should show `none`.
 5. Press **Ctrl+C** to stop. It prints the average, best and worst time.
 
@@ -139,6 +141,10 @@ The model has two stages: **ASR → rule-based intent classifier.** Each *finish
 | next, lanjut, lanjutkan, next slide, slide berikutnya, slide selanjutnya, oke lanjut | `next` (→) |
 | back, balik, previous, previous slide, slide sebelumnya, kembali ke slide sebelumnya | `prev` (←) |
 | slide 2, slide dua, slide ke-5, slide dua belas, go to slide seven, balik ke slide 3 | `goto N` (types N, then Enter) |
+| slide pertama, first slide, kembali ke slide pertama | `goto 1` |
+| slide terakhir, last slide | go to the last slide (needs "Jumlah slide" filled in) |
+| stop, berhenti (said on its own) | pause listening: nothing is shown, stored or acted on |
+| mulai (while paused) | listen again |
 
 Built for real talks, where command words also appear inside explanations:
 1. **The whole utterance must be a command.** The only extra words allowed are fillers (oke, ya, kita, ke, tolong, please, go, to…). "kembali ke topik", "next step" and "di slide dua tadi" do nothing.
@@ -191,7 +197,7 @@ On this CPU only `tiny` stays real-time, so it is the default (change it in Peng
 
 ## Tests
 ```bash
-python -m pytest tests     # 69 tests: parser + explanation phrases, segmenter + 8 s cut, API, live page, full voice session with a fake mic
+python -m pytest tests     # 96 tests: parser + explanation phrases, segmenter + 8 s cut, API, live page, full voice session with a fake mic
 ```
 See `REPORT.md` for requirements, progress, and what the team still has to do.
 

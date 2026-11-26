@@ -1,7 +1,9 @@
 """Speech-to-action: turn one finished utterance (ASR text) into a slide action.
 
 Rule-based intent classifier on top of the ASR output:
-  ("next", None) | ("prev", None) | ("goto", n) | None
+  ("next", None) | ("prev", None) | ("goto", n) | ("last", None)   slide actions
+  ("pause", None) | ("resume", None)                                  listening on/off
+  None
 
 Built for real talks, where command words also appear inside explanations:
   * the WHOLE utterance must be a command (plus a few fillers): "kembali ke topik" -> None
@@ -15,13 +17,18 @@ NEXT = {"next", "lanjut", "lanjutkan"}                        # rarely said mid-
 PREV = {"back", "balik", "previous", "prev"}
 NEXT_WITH_SLIDE = {"berikutnya", "selanjutnya", "maju"}       # common in explanations: need "slide"
 PREV_WITH_SLIDE = {"sebelumnya", "kembali", "mundur"}
+FIRST = {"pertama", "first"}                                  # only with "slide": "slide pertama"
+LAST = {"terakhir", "last"}                                   # only with "slide": "slide terakhir"
+PAUSE = {"stop", "berhenti"}                                  # stop listening for a while
+RESUME = {"mulai"}                                            # listen again
 NUM = {"satu": 1, "dua": 2, "tiga": 3, "empat": 4, "lima": 5, "enam": 6, "tujuh": 7,
        "delapan": 8, "sembilan": 9, "sepuluh": 10, "sebelas": 11,
        "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7,
        "eight": 8, "nine": 9, "ten": 10, "eleven": 11, "twelve": 12}
 FILLERS = {"oke", "ok", "okay", "ya", "yuk", "ayo", "nah", "tolong", "please", "kita",
            "ke", "go", "to", "the"}
-COMMAND_WORDS = NEXT | PREV | NEXT_WITH_SLIDE | PREV_WITH_SLIDE | set(NUM) | {"slide", "belas"}
+COMMAND_WORDS = (NEXT | PREV | NEXT_WITH_SLIDE | PREV_WITH_SLIDE | FIRST | LAST | PAUSE | RESUME
+                 | set(NUM) | {"slide", "belas"})
 VOCAB = sorted(COMMAND_WORDS)  # fuzzy targets; fillers excluded so a random word can't become one
 MAX_WORDS = 4  # after removing fillers; "back to slide 3" -> back slide 3
 FUZZY_CUTOFF = 0.8  # absorbs small ASR slips: "lanjud"->lanjut, "bali"->balik, "slaid"->slide
@@ -54,11 +61,23 @@ def parse(text):
         return None
     if any(w not in COMMAND_WORDS and not w.isdigit() for w in words):
         return None  # anything else in the utterance means it was speech, not a command
+    if len(words) == 1 and words[0] in PAUSE:  # "stop" / "berhenti" on its own
+        return ("pause", None)
+    if len(words) == 1 and words[0] in RESUME:  # "mulai" on its own
+        return ("resume", None)
+    if any(w in PAUSE | RESUME for w in words):
+        return None  # "berhenti di slide 3" etc. is speech, not a command
     has_slide = "slide" in words
     if has_slide:  # "slide N" wins over next/back: "back to slide 3" -> goto 3
         n = _number(words[words.index("slide") + 1:])
         if n:  # "slide 0" falls through and is rejected below
             return ("goto", n)
+        if any(w in FIRST for w in words):  # "slide pertama", "kembali ke slide pertama"
+            return ("goto", 1)
+        if any(w in LAST for w in words):  # "slide terakhir": the engine knows how many slides
+            return ("last", None)
+    if any(w in FIRST | LAST for w in words):
+        return None  # "pertama", "yang terakhir" without "slide" is speech
     if any(_is_num(w) for w in words):
         return None  # a number without "slide N" ("lanjut dua") is ambiguous
     nxt = any(w in NEXT or (has_slide and w in NEXT_WITH_SLIDE) for w in words)

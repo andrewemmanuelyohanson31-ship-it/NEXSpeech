@@ -112,6 +112,68 @@ def test_voice_session_end_to_end():
         assert c.get(f"/api/sessions/{summary['id']}").json()["events"]
 
 
+class SequenceTranscriber(FakeTranscriber):
+    """Returns the scripted texts in order, one per finished utterance."""
+
+    def __init__(self, texts):
+        super().__init__()
+        self.texts = list(texts)
+
+    def __call__(self, audio):
+        return self.texts.pop(0) if len(self.texts) > 1 else self.texts[0]
+
+
+def voice_session(monkeypatch, texts, slides_total=None):
+    """Speak `texts` one utterance each; return the finished session summary."""
+    monkeypatch.setattr("nex.engine.COOLDOWN_S", 0)
+    fake = SequenceTranscriber(texts)
+    app.state.transcriber_factory = lambda **kw: fake
+    app.state.transcriber = None
+    app.state.mic_factory = FakeMic(utterances(len(texts)))
+    with TestClient(app) as c:
+        # no partials (chunk > utterance), so each utterance makes exactly one transcriber call
+        c.put("/api/settings", json={"chunk_s": 3.0})
+        try:
+            c.post("/api/session/start", json={"title": "deck commands", "slides_total": slides_total})
+            eng = app.state.engine
+            assert wait_for(lambda: not app.state.mic_factory.blocks)  # all audio consumed
+            time.sleep(0.2)
+            slide, state = eng.slide, eng.state
+            summary = c.post("/api/session/stop").json()
+        finally:
+            c.put("/api/settings", json={"chunk_s": 1.0})
+    return slide, state, summary
+
+
+def test_voice_stop_and_mulai(monkeypatch):
+    # "stop" pauses; "lanjut" while paused is ignored; "mulai" resumes; then "lanjut" works
+    slide, state, s = voice_session(monkeypatch, ["stop", "lanjut", "mulai", "lanjut"], slides_total=10)
+    assert slide == 2 and state == "listening"
+    assert s["voice_commands"] == 1
+    types = [(e["type"], e["action"]) for e in s["events"] if e["type"] in ("control", "command")]
+    assert types == [("control", "pause"), ("control", "resume"), ("command", "next")]
+    finals = [e["text"] for e in s["events"] if e["type"] == "final"]
+    assert "lanjut" in finals and finals.count("lanjut") == 1  # the paused "lanjut" was not stored
+
+
+def test_voice_first_and_last_slide(monkeypatch):
+    slide, _, _ = voice_session(monkeypatch, ["slide terakhir"], slides_total=12)
+    assert slide == 12
+    slide, _, _ = voice_session(monkeypatch, ["slide 5", "slide pertama"], slides_total=12)
+    assert slide == 1
+
+
+def test_last_slide_without_slide_count_is_rejected(monkeypatch):
+    slide, _, s = voice_session(monkeypatch, ["slide terakhir"], slides_total=None)
+    assert slide == 1
+    assert any(e["type"] == "rejected" and e["action"] == "last" for e in s["events"])
+
+
+def test_mulai_while_listening_does_nothing(monkeypatch):
+    _, state, s = voice_session(monkeypatch, ["kita mulai"])
+    assert state == "listening" and not any(e["type"] == "control" for e in s["events"])
+
+
 def test_tail_of_forced_cut_does_not_move_slide(monkeypatch):
     """12 s of nonstop talk is cut at 8 s; even if the tail reads "berikutnya"-like "lanjut", no action."""
     monkeypatch.setattr("nex.engine.COOLDOWN_S", 0)  # so only the cut rule can block the 2nd action

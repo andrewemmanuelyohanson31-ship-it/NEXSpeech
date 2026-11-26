@@ -45,8 +45,7 @@ class Engine:
                     n += 1
                     if n % 2 == 0:
                         self.emit({"type": "level", "rms": rms(block)})
-                    if self.state == "paused":
-                        continue
+                    # keep recognizing while paused, so a spoken "mulai" can resume
                     for ev in self.rec.feed(block):
                         self._handle(ev)
                     if self.state == "calibrating" and self.rec.calibrated():
@@ -61,18 +60,42 @@ class Engine:
 
     def _handle(self, ev):
         speech_end_t = ev.pop("speech_end_t", None)
+        final = ev["type"] == "final"
+        # finals only (one "next" can't fire twice), and never the tail of a forced 8 s cut
+        action = parse(ev["text"]) if final and not ev.get("after_cut") else None
+        resumed = False
+        if self.state == "paused":
+            if action != ("resume", None):
+                return  # paused = not listening: show nothing, store nothing, act on nothing
+            self.resume()
+            resumed = True
         self.emit(ev)
-        if ev["type"] == "partial":
+        if not final:
             return
         self.db.log_event(self.session_id, ev)
-        # finals only (one "next" can't fire twice), and never the tail of a forced 8 s cut
-        action = None if ev.get("after_cut") else parse(ev["text"])
+        if action == ("resume", None) and not resumed:
+            return  # "(kita) mulai" while already listening is just speech
+        if action and action[0] in ("pause", "resume"):
+            if action[0] == "pause":
+                self.pause()
+            control = {"type": "control", "action": action[0], "text": ev["text"], "source": "voice"}
+            self.emit(control)
+            self.db.log_event(self.session_id, control)
+            return
         if action and time.perf_counter() - self.last_voice_action >= COOLDOWN_S:
             self.last_voice_action = time.perf_counter()
             self.act(action, "voice", speech_end_t, ev["text"])
 
     def act(self, action, source, speech_end_t=None, text=None):
         with self._lock:
+            if action[0] == "last":
+                if not self.slides_total:
+                    ev = {"type": "rejected", "action": "last", "slide": None, "text": text, "source": source,
+                          "reason": "Jumlah slide belum diisi, jadi slide terakhir tidak diketahui."}
+                    self.emit(ev)
+                    self.db.log_event(self.session_id, ev)
+                    return ev
+                action = ("goto", self.slides_total)
             kind, n = action
             target = {"next": self.slide + 1, "prev": self.slide - 1, "goto": n}[kind]
             if target < 1 or (self.slides_total and target > self.slides_total):

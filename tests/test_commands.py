@@ -15,6 +15,14 @@ CASES = {
     "go to slide twelve": ("goto", 12), "Slide 10": ("goto", 10), "slide dua belas": ("goto", 12),
     "back to slide 3": ("goto", 3), "balik ke slide dua": ("goto", 2), "slide 15": ("goto", 15),
     "kembali ke slide 3": ("goto", 3),
+    # first / last slide (from the progress deck)
+    "slide pertama": ("goto", 1), "first slide": ("goto", 1), "kembali ke slide pertama": ("goto", 1),
+    "slide terakhir": ("last", None), "last slide": ("last", None), "the last slide": ("last", None),
+    "ke slide terakhir": ("last", None),
+    # stop / resume listening (from the progress deck)
+    "stop": ("pause", None), "Stop.": ("pause", None), "berhenti": ("pause", None), "oke berhenti": ("pause", None),
+    "mulai": ("resume", None), "Mulai!": ("resume", None),
+    "kita mulai": ("resume", None),  # harmless: "mulai" only does something while paused
     # small ASR slips (fuzzy match)
     "lanjud": ("next", None), "bali": ("prev", None), "slaid tiga": ("goto", 3),
     # silence / non-commands
@@ -30,6 +38,8 @@ IN_TALK = [
     "maju ke depan", "mundur sedikit", "di slide dua tadi", "slide tiga tadi", "tadi di slide 5 kita lihat",
     "the next topic is speech recognition", "kita kembali ke pembahasan awal tadi",
     "pertama kedua dan selanjutnya kita bahas fitur",
+    "pertama", "yang terakhir", "terakhir", "mulai dari awal", "berhenti sebentar",
+    "stop motion", "berhenti di slide 3", "last time", "first step",
 ]
 
 

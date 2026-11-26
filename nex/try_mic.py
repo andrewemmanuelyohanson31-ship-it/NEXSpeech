@@ -52,7 +52,8 @@ def describe(ev):
         return "none (tail of a long sentence cut at 8 s, not after a real pause)"
     a = parse(ev["text"])
     if a:
-        return {"next": "NEXT slide", "prev": "PREVIOUS slide"}.get(a[0]) or f"GO TO slide {a[1]}"
+        return {"next": "NEXT slide", "prev": "PREVIOUS slide", "last": "LAST slide (needs the slide count)",
+                "pause": "PAUSE listening", "resume": "RESUME listening"}.get(a[0]) or f"GO TO slide {a[1]}"
     return "none (normal speech, not a command on its own)"
 
 

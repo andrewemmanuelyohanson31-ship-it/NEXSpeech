@@ -42,6 +42,8 @@ Date: 16 November 2026
 - Speech-to-action model
   - turns each finished sentence into next, previous, go to slide N, or nothing
   - works in Indonesian and English, including "slide dua belas" = 12
+  - the progress deck's commands: "slide pertama", "slide terakhir", "stop / berhenti" (pause listening), "mulai" (listen again)
+  - "kembali" on its own is deliberately NOT a command (it's too common in normal speech); use "balik", "back" or "slide sebelumnya"
   - tolerates small recognition mistakes, e.g. "lanjud" → lanjut
 - Protection against accidental slide changes in long talks
   - the whole sentence must be a command, not just contain a command word
@@ -72,7 +74,7 @@ Date: 16 November 2026
   - measure WER (with substitutions, deletions and insertions), command accuracy, false triggers per 10 minutes, latency P50/P95 and real-time factor
   - per-clip results file for the error analysis table
 - Tests and documentation
-  - 69 automated tests, including a full voice session with a simulated microphone
+  - 96 automated tests, including a full voice session with a simulated microphone
   - README, step-by-step guide, and this report
 
 ## Partly done / in progress
