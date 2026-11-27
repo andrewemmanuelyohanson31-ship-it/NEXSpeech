@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Nex · Sesi Live</title>
-<link rel="icon" href="data:,">
+<link rel="icon" type="image/png" href="favicon.png">
 <style>
-  /* No external fonts or CDNs: NEX must work offline in a classroom. Colors from the Figma live screen. */
+  /* Offline typography with local InterVariable fonts */
   @font-face {
     font-family: "Inter";
     src: url("fonts/InterVariable.woff2") format("woff2");
@@ -21,152 +21,1199 @@
     font-style: italic;
     font-display: swap;
   }
+
   :root {
-    --brand: #FF6A00; --brand-soft: #FFF3EA; --ink: #141A2B; --muted: #6B7280; --bg: #F7F7FB;
-    --surface: #FFFFFF; --border: #ECEAF3; --ok: #0E9F6E; --ok-soft: #DEF7EC; --danger: #E5484D;
-    --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --brand: #FF6A00;
+    --brand-hover: #E85D00;
+    --brand-soft: #FFF3EA;
+    --brand-subtle: #FFEADA;
+    --ink: #141A2B;
+    --ink-secondary: #394154;
+    --muted: #6B7280;
+    --muted-light: #9CA3AF;
+    --bg: #F7F7FB;
+    --surface: #FFFFFF;
+    --surface-raised: #FAF9FD;
+    --border: #ECEAF3;
+    --border-hover: #DCD9E8;
+    --border-focus: #FFB27A;
+    --ok: #0E9F6E;
+    --ok-soft: #DEF7EC;
+    --danger: #E5484D;
+    --danger-soft: #FDE8E8;
+    --font: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --shadow-sm: 0 1px 3px rgba(20, 26, 43, 0.04), 0 1px 2px rgba(20, 26, 43, 0.02);
+    --shadow-md: 0 4px 14px rgba(20, 26, 43, 0.06);
+    --shadow-lg: 0 12px 32px rgba(20, 26, 43, 0.12);
   }
+
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font);
-         min-height: 100vh; display: flex; flex-direction: column; }
-  main { flex: 1; width: 100%; }
-  header, footer { display: flex; align-items: center; gap: 12px; padding: 12px 24px; background: var(--surface);
-                   border-bottom: 1px solid var(--border); flex-wrap: wrap; }
-  footer { border-top: 1px solid var(--border); border-bottom: 0; position: sticky; bottom: 0; }
-  .brand { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 18px; }
-  .logo { height: 30px; width: auto; display: block; object-fit: contain; }
-  .pill { padding: 4px 10px; border-radius: 999px; font-size: 13px; background: var(--border); color: var(--muted); }
-  .pill.live { background: var(--ok-soft); color: var(--ok); }
-  .pill.live::before { content: "● "; }
-  .chip { padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; background: var(--bg); }
-  .timer { background: var(--brand); color: #fff; border: 0; font-family: var(--font); font-variant-numeric: tabular-nums; }
-  .spacer { flex: 1; }
-  main { display: grid; grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr); gap: 20px; padding: 20px 24px;
-         max-width: 1280px; margin: 0 auto; }
-  @media (max-width: 800px) { main { grid-template-columns: 1fr; padding: 16px; } }
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px; }
-  .label { font-size: 12px; font-weight: 700; letter-spacing: .06em; color: var(--muted); text-transform: uppercase;
-           margin: 0 0 12px; }
-  #transcript { list-style: none; margin: 0; padding: 0; max-height: 58vh; overflow-y: auto; }
-  #transcript li { display: grid; grid-template-columns: 52px 1fr; gap: 10px; padding: 10px 0;
-                   border-bottom: 1px solid var(--border); }
-  #transcript time { font-family: var(--font); font-variant-numeric: tabular-nums; font-size: 12px; color: var(--muted); padding-top: 3px; }
-  .badge { display: inline-block; margin-top: 6px; padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; }
-  .badge.cmd { background: var(--brand-soft); color: var(--brand); }
-  .badge.skip { background: var(--bg); color: var(--muted); font-weight: 400; }
-  #partial { min-height: 28px; margin-top: 10px; color: var(--muted); font-style: italic; }
-  .big { font-size: 40px; font-weight: 800; margin: 4px 0; }
-  .muted { color: var(--muted); font-size: 14px; }
-  .meter { height: 8px; border-radius: 4px; background: var(--border); overflow: hidden; }
-  .meter > div { height: 100%; width: 0; background: var(--ok); transition: width .1s; }
-  aside { display: grid; gap: 20px; align-content: start; }
-  label.field { display: grid; gap: 6px; font-size: 13px; color: var(--muted); margin-bottom: 10px; }
-  input { font: inherit; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; color: var(--ink); }
-  button { font: inherit; font-size: 14px; padding: 9px 16px; border-radius: 8px; border: 1px solid var(--border);
-           background: var(--surface); color: var(--ink); cursor: pointer; }
-  button.primary { background: var(--brand); border-color: var(--brand); color: #fff; font-weight: 600; }
-  button.danger { color: var(--danger); border-color: #F5C2C3; }
-  button:disabled { opacity: .45; cursor: not-allowed; }
-  button:focus-visible, input:focus-visible { outline: 3px solid #FFB27A; outline-offset: 2px; }
-  #notice { display: none; margin: 0; padding: 10px 24px; background: var(--brand-soft); color: #9A3D00; font-size: 14px; }
-  dl { display: grid; grid-template-columns: auto auto; gap: 6px 12px; margin: 0; font-size: 14px; }
-  dt { color: var(--muted); } dd { margin: 0; text-align: right; font-family: var(--font); font-variant-numeric: tabular-nums; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* --- Top Header --- */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 28px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    flex-shrink: 0;
+  }
+  .logo {
+    height: 32px;
+    width: auto;
+    display: block;
+    object-fit: contain;
+  }
+
+  .header-divider {
+    width: 1px;
+    height: 24px;
+    background: var(--border);
+    flex-shrink: 0;
+  }
+
+  /* Profile Switcher Pills */
+  .profile-bar {
+    display: flex;
+    align-items: center;
+    background: var(--bg);
+    padding: 3px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    gap: 2px;
+  }
+  .profile-btn {
+    font-size: 12px;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-family: var(--font);
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+  }
+  .profile-btn:hover:not(.active) {
+    color: var(--ink);
+    background: rgba(0, 0, 0, 0.03);
+  }
+  .profile-btn.active {
+    background: var(--surface);
+    color: var(--brand);
+    font-weight: 600;
+    border-color: var(--border);
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* Header App Settings Trigger */
+  .settings-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--ink-secondary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .settings-btn:hover {
+    background: var(--surface-raised);
+    border-color: var(--border-hover);
+    color: var(--brand);
+  }
+  .settings-btn svg {
+    width: 14px;
+    height: 14px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+  }
+
+  /* Status Pill */
+  .pill {
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 500;
+    background: var(--border);
+    color: var(--muted);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+  .pill.live {
+    background: var(--ok-soft);
+    color: var(--ok);
+    font-weight: 600;
+  }
+  .pill.live::before {
+    content: "";
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--ok);
+    box-shadow: 0 0 0 3px rgba(14, 159, 110, 0.2);
+    animation: pulseDot 1.8s infinite;
+  }
+  @keyframes pulseDot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(1.2); }
+  }
+
+  /* Header Telemetry */
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .chip {
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    background: var(--bg);
+    color: var(--muted);
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+  .chip b {
+    color: var(--ink);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .chip.dry-run {
+    background: #FEF3C7;
+    color: #92400E;
+    border-color: #FDE68A;
+    font-weight: 600;
+  }
+  .chip.timer {
+    background: var(--brand);
+    color: #fff;
+    border-color: var(--brand);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.04em;
+    padding: 6px 14px;
+  }
+
+  /* Notice Banner */
+  #notice {
+    display: none;
+    margin: 0;
+    padding: 10px 28px;
+    background: var(--brand-soft);
+    color: #9A3D00;
+    font-size: 13px;
+    font-weight: 500;
+    border-bottom: 1px solid rgba(255, 106, 0, 0.15);
+    text-align: center;
+  }
+
+  /* --- Main Content Layout --- */
+  main {
+    flex: 1;
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 22px 28px;
+    display: grid;
+    grid-template-columns: minmax(0, 1.8fr) minmax(320px, 1.2fr);
+    gap: 20px;
+    align-items: start;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    box-shadow: var(--shadow-sm);
+    transition: border-color 0.15s ease;
+  }
+  .card:hover {
+    border-color: var(--border-hover);
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+    gap: 8px;
+  }
+
+  .label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin: 0;
+  }
+  .tag {
+    font-size: 11px;
+    color: var(--muted);
+    background: var(--bg);
+    padding: 2px 8px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    font-weight: 500;
+  }
+
+  /* --- Left Column: Live Transcript Card --- */
+  .transcript-card {
+    display: flex;
+    flex-direction: column;
+    min-height: 520px;
+  }
+
+  .transcript-body {
+    position: relative;
+    flex: 1;
+    min-height: 380px;
+    max-height: 64vh;
+    overflow-y: auto;
+    padding-right: 6px;
+  }
+  .transcript-body::-webkit-scrollbar {
+    width: 6px;
+  }
+  .transcript-body::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 3px;
+  }
+  .transcript-body::-webkit-scrollbar-thumb:hover {
+    background: var(--muted-light);
+  }
+
+  /* Empty State */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    height: 100%;
+    min-height: 340px;
+    padding: 32px 20px;
+    color: var(--muted);
+  }
+  .empty-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--brand-soft);
+    color: var(--brand);
+    display: grid;
+    place-items: center;
+    font-size: 22px;
+    margin-bottom: 14px;
+  }
+  .empty-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ink);
+    margin: 0 0 6px 0;
+  }
+  .empty-desc {
+    font-size: 13px;
+    color: var(--muted);
+    max-width: 320px;
+    line-height: 1.5;
+    margin: 0;
+  }
+  .empty-desc code {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-family: inherit;
+    color: var(--brand);
+    font-weight: 600;
+  }
+
+  /* Transcript List */
+  #transcript {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  #transcript li {
+    display: grid;
+    grid-template-columns: 58px 1fr;
+    gap: 12px;
+    padding: 12px 8px;
+    border-bottom: 1px solid var(--border);
+    animation: fadeIn 0.2s ease-out;
+  }
+  #transcript li:last-child {
+    border-bottom: none;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  #transcript time {
+    font-family: var(--font);
+    font-variant-numeric: tabular-nums;
+    font-size: 12px;
+    color: var(--muted-light);
+    font-weight: 500;
+    padding-top: 2px;
+  }
+  .transcript-content {
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--ink);
+    word-break: break-word;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    margin-top: 6px;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+  .badge.cmd {
+    background: var(--brand-soft);
+    color: var(--brand);
+    border: 1px solid rgba(255, 106, 0, 0.2);
+  }
+  .badge.skip {
+    background: var(--bg);
+    color: var(--muted);
+    border: 1px solid var(--border);
+    font-weight: 400;
+  }
+
+  #partial {
+    min-height: 28px;
+    margin-top: 12px;
+    padding: 6px 12px;
+    border-radius: var(--radius-sm);
+    background: var(--bg);
+    color: var(--muted);
+    font-style: italic;
+    font-size: 13px;
+    border-left: 3px solid var(--brand-subtle);
+  }
+
+  /* --- Right Column Stack --- */
+  aside {
+    display: grid;
+    gap: 18px;
+    align-content: start;
+  }
+
+  /* Last Command & Level Card */
+  .cmd-display-box {
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 14px 18px;
+    margin-bottom: 16px;
+  }
+  .big {
+    font-size: 32px;
+    font-weight: 800;
+    margin: 0 0 4px 0;
+    color: var(--brand);
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+  .muted {
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
+  .meter-section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .meter-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .meter {
+    height: 8px;
+    border-radius: 999px;
+    background: var(--border);
+    overflow: hidden;
+  }
+  .meter > div {
+    height: 100%;
+    width: 0;
+    background: var(--ok);
+    border-radius: 999px;
+    transition: width 0.08s ease-out;
+  }
+
+  /* Session & Summary Card */
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  label.field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+  }
+  input {
+    font: inherit;
+    font-size: 13px;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--ink);
+    background: var(--surface);
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  input:focus {
+    outline: none;
+    border-color: var(--brand);
+    box-shadow: 0 0 0 3px var(--brand-soft);
+  }
+
+  /* Summary Table */
+  #summary {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+  dl {
+    display: grid;
+    grid-template-columns: auto auto;
+    gap: 8px 14px;
+    margin: 8px 0 0 0;
+    font-size: 13px;
+  }
+  dt {
+    color: var(--muted);
+    font-weight: 500;
+  }
+  dd {
+    margin: 0;
+    text-align: right;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+  }
+
+  /* Cheatsheet Card */
+  .cheatsheet-card {
+    position: relative;
+  }
+  .cmd-group {
+    margin-bottom: 14px;
+  }
+  .cmd-group:last-child {
+    margin-bottom: 0;
+  }
+  .cmd-group-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .cmd-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    gap: 10px;
+  }
+  .cmd-row:last-child {
+    border-bottom: none;
+  }
+  .cmd-left {
+    flex: 1;
+    min-width: 0;
+  }
+  .cmd-name {
+    font-weight: 600;
+    color: var(--ink);
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .cmd-key {
+    font-size: 10px;
+    font-weight: 700;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    padding: 1px 5px;
+    border-radius: 4px;
+    color: var(--muted);
+  }
+  .cmd-trigger {
+    color: var(--muted);
+    font-size: 11px;
+    margin-top: 2px;
+  }
+
+  /* Toggle Switch */
+  .toggle {
+    position: relative;
+    width: 34px;
+    height: 19px;
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+  .toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    position: absolute;
+  }
+  .toggle .slider {
+    position: absolute;
+    inset: 0;
+    background: var(--border);
+    border-radius: 10px;
+    transition: 0.2s ease;
+  }
+  .toggle .slider::before {
+    content: "";
+    position: absolute;
+    width: 15px;
+    height: 15px;
+    left: 2px;
+    bottom: 2px;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+    transition: 0.2s ease;
+  }
+  .toggle input:checked + .slider {
+    background: var(--brand);
+  }
+  .toggle input:checked + .slider::before {
+    transform: translateX(15px);
+  }
+
+  /* --- Bottom Action Bar --- */
+  footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 28px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
+    box-shadow: 0 -2px 10px rgba(20, 26, 43, 0.03);
+  }
+  .footer-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .footer-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  /* Button Styles */
+  button {
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 9px 18px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--ink);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  button:hover:not(:disabled) {
+    background: var(--surface-raised);
+    border-color: var(--border-hover);
+  }
+  button.primary {
+    background: var(--brand);
+    border-color: var(--brand);
+    color: #fff;
+    font-weight: 600;
+  }
+  button.primary:hover:not(:disabled) {
+    background: var(--brand-hover);
+    border-color: var(--brand-hover);
+  }
+  button.danger {
+    color: var(--danger);
+    border-color: #F8B4B4;
+    background: #FFF5F5;
+  }
+  button.danger:hover:not(:disabled) {
+    background: var(--danger);
+    color: #fff;
+    border-color: var(--danger);
+  }
+  button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    background: var(--bg);
+    border-color: var(--border);
+    color: var(--muted);
+  }
+  button:focus-visible, input:focus-visible {
+    outline: 3px solid var(--border-focus);
+    outline-offset: 2px;
+  }
+
+  /* --- Slide-Over Settings Drawer --- */
+  .drawer-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(20, 26, 43, 0.4);
+    backdrop-filter: blur(2px);
+    z-index: 100;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.25s ease, visibility 0.25s ease;
+  }
+  .drawer-overlay.open {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .drawer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 380px;
+    max-width: 90vw;
+    background: var(--surface);
+    box-shadow: var(--shadow-lg);
+    z-index: 101;
+    transform: translateX(100%);
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex;
+    flex-direction: column;
+  }
+  .drawer.open {
+    transform: translateX(0);
+  }
+
+  .drawer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--border);
+  }
+  .drawer-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 0;
+  }
+  .drawer-close {
+    background: transparent;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: var(--muted);
+    padding: 4px 8px;
+    border-radius: 6px;
+  }
+  .drawer-close:hover {
+    color: var(--ink);
+    background: var(--bg);
+  }
+
+  .drawer-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+  }
+
+  .drawer-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .drawer-section-title {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    margin: 0;
+  }
+
+  /* Jump Mode Selector */
+  .jump-mode-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .jump-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .jump-option:hover {
+    border-color: var(--border-hover);
+    background: var(--surface-raised);
+  }
+  .jump-option.active {
+    border-color: var(--brand);
+    background: var(--brand-soft);
+  }
+  .jump-option input {
+    margin-top: 3px;
+    accent-color: var(--brand);
+  }
+  .jump-option-text {
+    flex: 1;
+  }
+  .jump-option-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+    margin: 0 0 2px 0;
+  }
+  .jump-option-desc {
+    font-size: 11px;
+    color: var(--muted);
+    margin: 0;
+    line-height: 1.4;
+  }
+
+  .focus-cue-card {
+    background: #FFFBEB;
+    border: 1px solid #FDE68A;
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    color: #92400E;
+    font-size: 12px;
+    line-height: 1.45;
+  }
+  .focus-cue-card b {
+    color: #78350F;
+  }
+
+  /* Responsive Rules */
+  @media (max-width: 960px) {
+    main {
+      grid-template-columns: 1fr;
+      padding: 16px;
+      gap: 16px;
+    }
+    header, footer {
+      padding: 12px 16px;
+    }
+    .form-row {
+      grid-template-columns: 1fr;
+    }
+  }
+  @media (max-width: 640px) {
+    .header-left, .header-right {
+      width: 100%;
+      justify-content: space-between;
+    }
+    .profile-bar {
+      width: 100%;
+      justify-content: stretch;
+    }
+    .profile-btn {
+      flex: 1;
+      justify-content: center;
+    }
+    footer {
+      flex-direction: column;
+      gap: 10px;
+    }
+    .footer-left, .footer-right {
+      width: 100%;
+      justify-content: stretch;
+    }
+    .footer-left button, .footer-right button {
+      flex: 1;
+      justify-content: center;
+    }
+  }
 </style>
 </head>
 <body>
+
+<!-- Top Navigation Bar -->
 <header>
-  <div class="brand"><img src="logo.png" alt="Nex" class="logo"></div>
-  <span id="state" class="pill" role="status">Belum mulai</span>
-  <div class="spacer"></div>
-  <span class="chip">Latensi <b id="latency">–</b></span>
-  <span class="chip">Slide <b id="slide">–</b></span>
-  <span class="chip timer" id="timer" aria-label="Durasi sesi">00:00</span>
+  <div class="header-left">
+    <div class="brand">
+      <img src="logo.png" alt="Nex" class="logo">
+    </div>
+
+    <div class="header-divider"></div>
+
+    <div class="profile-bar" role="tablist" aria-label="Aplikasi Presentasi">
+      <button class="profile-btn" data-profile="canva" role="tab">Canva</button>
+      <button class="profile-btn active" data-profile="powerpoint" role="tab">PowerPoint</button>
+      <button class="profile-btn" data-profile="google_slides" role="tab">Google Slides</button>
+    </div>
+
+    <button id="openSettingsBtn" class="settings-btn" title="Pengaturan Pintasan & Mode Aplikasi">
+      <svg viewBox="0 0 24 24"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      Pintasan
+    </button>
+
+    <span id="state" class="pill" role="status">Belum mulai</span>
+  </div>
+
+  <div class="header-right">
+    <span class="chip dry-run" id="dryrun" hidden>🧪 DRY RUN</span>
+    <span class="chip" id="rtfChip" hidden>RTF <b id="rtf">–</b></span>
+    <span class="chip">Latensi <b id="latency">–</b></span>
+    <span class="chip">Slide <b id="slide">–</b></span>
+    <span class="chip timer" id="timer" aria-label="Durasi sesi">00:00</span>
+  </div>
 </header>
+
 <p id="notice" role="alert"></p>
 
+<!-- Main Workspace -->
 <main>
-  <section class="card" aria-labelledby="t-label">
-    <h2 class="label" id="t-label">Transkrip live</h2>
-    <ol id="transcript" aria-live="polite"></ol>
-    <div id="partial" aria-hidden="true"></div>
+  <!-- Left Column: Transkrip Live -->
+  <section class="card transcript-card" aria-labelledby="t-label">
+    <div class="card-header">
+      <h2 class="label" id="t-label">Transkrip live</h2>
+      <span class="tag" id="transcribeStatus">Menunggu mikrofon</span>
+    </div>
+
+    <div class="transcript-body">
+      <div id="transcriptEmpty" class="empty-state">
+        <div class="empty-icon">🎙️</div>
+        <p class="empty-title">Menunggu suara...</p>
+        <p class="empty-desc">Ucapkan <code>"lanjut"</code>, <code>"balik"</code>, atau <code>"slide tiga"</code> untuk berpindah slide.</p>
+      </div>
+
+      <ol id="transcript" aria-live="polite"></ol>
+      <div id="partial" aria-hidden="true" style="display:none;"></div>
+    </div>
   </section>
 
+  <!-- Right Column: Control & Cues -->
   <aside>
+    <!-- Card 1: Perintah Terakhir & Level Suara -->
     <section class="card" aria-labelledby="c-label">
-      <h2 class="label" id="c-label">Perintah terakhir</h2>
-      <div class="big" id="lastCmd">–</div>
-      <div class="muted" id="lastCmdInfo">Ucapkan "lanjut", "balik", "slide tiga", atau "slide terakhir".</div>
+      <div class="card-header">
+        <h2 class="label" id="c-label">Perintah terakhir</h2>
+      </div>
+      <div class="cmd-display-box">
+        <div class="big" id="lastCmd">–</div>
+        <div class="muted" id="lastCmdInfo">Ucapkan "lanjut", "balik", "slide tiga", atau "slide terakhir".</div>
+      </div>
+
+      <div class="meter-section">
+        <div class="meter-header">
+          <span id="m-label">Level mikrofon</span>
+          <span id="meterPercent" style="font-family: var(--font); font-variant-numeric: tabular-nums;">0%</span>
+        </div>
+        <div class="meter" role="meter" aria-label="Level mikrofon" aria-labelledby="m-label" aria-valuemin="0" aria-valuemax="100">
+          <div id="level"></div>
+        </div>
+      </div>
     </section>
 
-    <section class="card" aria-labelledby="m-label">
-      <h2 class="label" id="m-label">Level suara</h2>
-      <div class="meter" role="meter" aria-label="Level mikrofon" aria-valuemin="0" aria-valuemax="100"><div id="level"></div></div>
-    </section>
-
+    <!-- Card 2: Sesi & Ringkasan -->
     <section class="card" aria-labelledby="s-label">
-      <h2 class="label" id="s-label">Sesi</h2>
-      <label class="field">Judul<input id="title" value="Latihan presentasi" maxlength="200"></label>
-      <label class="field">Jumlah slide (opsional)<input id="total" type="number" min="1" max="500" placeholder="mis. 12"></label>
+      <div class="card-header">
+        <h2 class="label" id="s-label">Sesi</h2>
+      </div>
+      <div class="form-row">
+        <label class="field">
+          Judul Sesi
+          <input id="title" value="Latihan presentasi" maxlength="200" placeholder="Judul presentasi">
+        </label>
+        <label class="field">
+          Jumlah slide (opsional)
+          <input id="total" type="number" min="1" max="500" placeholder="mis. 12">
+        </label>
+      </div>
+
       <div id="summary" hidden>
-        <h2 class="label">Ringkasan</h2>
+        <h3 class="label" style="margin-bottom: 8px;">Ringkasan Sesi</h3>
         <dl id="summaryList"></dl>
       </div>
+    </section>
+
+    <!-- Card 3: Perintah Aktif Reference List -->
+    <section class="card cheatsheet-card" aria-labelledby="cs-label" id="cheatsheetCard">
+      <div class="card-header">
+        <h2 class="label" id="cs-label">Perintah aktif</h2>
+        <span class="tag" id="activeProfileTag">PowerPoint</span>
+      </div>
+      <div id="cmdList"></div>
     </section>
   </aside>
 </main>
 
+<!-- Bottom Action Bar -->
 <footer>
-  <button class="primary" id="start">Mulai sesi</button>
-  <button id="pause" disabled>Jeda</button>
-  <button class="danger" id="stop" disabled>Akhiri sesi</button>
-  <div class="spacer"></div>
-  <button id="prev" disabled aria-label="Slide sebelumnya">← Mundur</button>
-  <button id="next" disabled aria-label="Slide berikutnya">Berikutnya →</button>
+  <div class="footer-left">
+    <button class="primary" id="start">Mulai sesi</button>
+    <button id="pause" disabled>Jeda</button>
+    <button class="danger" id="stop" disabled>Akhiri sesi</button>
+  </div>
+  <div class="footer-right">
+    <button id="prev" disabled aria-label="Slide sebelumnya">← Mundur</button>
+    <button id="next" disabled aria-label="Slide berikutnya">Berikutnya →</button>
+  </div>
 </footer>
+
+<!-- App Settings Slide-Over Drawer -->
+<div class="drawer-overlay" id="drawerOverlay" aria-hidden="true"></div>
+<aside class="drawer" id="appSettingsDrawer" aria-labelledby="drawerTitle" aria-hidden="true">
+  <div class="drawer-header">
+    <div>
+      <h3 class="drawer-title" id="drawerTitle">Pengaturan Presentasi</h3>
+      <div class="muted" id="drawerSubtitle" style="font-size: 12px; margin-top: 2px;">Profil: PowerPoint</div>
+    </div>
+    <button class="drawer-close" id="closeDrawerBtn" aria-label="Tutup pengaturan">&times;</button>
+  </div>
+
+  <div class="drawer-body">
+    <!-- Section 1: Jump Mode -->
+    <div class="drawer-section">
+      <h4 class="drawer-section-title">Mode Loncat Slide (Jump Mode)</h4>
+      <div class="jump-mode-picker">
+        <label class="jump-option" id="jumpOptionNumber">
+          <input type="radio" name="jumpModeRadio" value="number" checked>
+          <div class="jump-option-text">
+            <div class="jump-option-title">Ketik Angka + Enter</div>
+            <p class="jump-option-desc">Ideal untuk PowerPoint & Google Slides. Langsung berpindah ke nomor slide yang disebutkan.</p>
+          </div>
+        </label>
+        <label class="jump-option" id="jumpOptionArrows">
+          <input type="radio" name="jumpModeRadio" value="arrows">
+          <div class="jump-option-text">
+            <div class="jump-option-title">Tombol Panah Bertahap (Arrows)</div>
+            <p class="jump-option-desc">Wajib untuk Canva karena Canva tidak mendukung lompatan angka secara langsung.</p>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <!-- Section 2: App Shortcuts Checklist with Toggles -->
+    <div class="drawer-section">
+      <h4 class="drawer-section-title">Pintasan Suara Aktif</h4>
+      <div id="drawerShortcutList"></div>
+    </div>
+
+    <!-- Section 3: Focus Cue Reminder -->
+    <div class="focus-cue-card">
+      <b>💡 Tips Fokus Jendela:</b>
+      Setelah menekan "Mulai sesi", klik sekali jendela presentasi Anda (PowerPoint / Canva / Slides) agar tombol keyboard diterima oleh slideshow.
+    </div>
+  </div>
+</aside>
 
 <script>
 const $ = id => document.getElementById(id);
-const STATES = { idle: "Belum mulai", starting: "Memulai…", calibrating: "Diam sebentar… (kalibrasi)",
-                 listening: "Mendengarkan", paused: "Dijeda", stopped: "Selesai" };
-const ACTIONS = { next: "Slide berikutnya", prev: "Slide sebelumnya", goto: "Ke slide" };
+const STATES = {
+  idle: "Belum mulai",
+  starting: "Memulai…",
+  calibrating: "Kalibrasi kebisingan…",
+  listening: "Mendengarkan",
+  paused: "Dijeda",
+  stopped: "Selesai"
+};
+const ACTIONS = {
+  next: "Slide berikutnya",
+  prev: "Slide sebelumnya",
+  goto: "Ke slide"
+};
 let state = "idle", startedAt = null, lastFinal = null;
+let currentProfile = "powerpoint";
+let disabledShortcuts = [];
+let profileData = null;
 
 function setState(s) {
   state = s;
   $("state").textContent = STATES[s] || s;
   $("state").classList.toggle("live", s === "listening");
+
   const running = !["idle", "stopped"].includes(s);
   $("start").disabled = running;
   $("stop").disabled = $("prev").disabled = $("next").disabled = !running;
   $("pause").disabled = !["listening", "paused"].includes(s);
   $("pause").textContent = s === "paused" ? "Lanjutkan" : "Jeda";
-  if (s === "calibrating") notice("Diam 2 detik: Nex sedang mengukur kebisingan ruangan.");
-  else if (s === "paused") notice("Dijeda: Nex tidak menjalankan perintah. Ucapkan \"mulai\" atau klik Lanjutkan.");
-  else if (s === "listening") notice("Klik jendela presentasi sekarang agar tombol slide terkirim ke sana.");
-  else if (s !== "starting") notice("");
+
+  // Update transcript status badge
+  if (s === "listening") {
+    $("transcribeStatus").textContent = "Mendengarkan suara";
+    $("transcribeStatus").style.color = "var(--ok)";
+    $("transcribeStatus").style.borderColor = "var(--ok)";
+  } else if (s === "calibrating") {
+    $("transcribeStatus").textContent = "Mengukur kebisingan…";
+    $("transcribeStatus").style.color = "var(--brand)";
+    $("transcribeStatus").style.borderColor = "var(--brand)";
+  } else if (s === "paused") {
+    $("transcribeStatus").textContent = "Sesi dijeda";
+    $("transcribeStatus").style.color = "var(--muted)";
+    $("transcribeStatus").style.borderColor = "var(--border)";
+  } else {
+    $("transcribeStatus").textContent = "Menunggu sesi";
+    $("transcribeStatus").style.color = "var(--muted)";
+    $("transcribeStatus").style.borderColor = "var(--border)";
+  }
+
+  if (s === "calibrating") {
+    notice("Diam 2 detik: Nex sedang mengukur kebisingan ruangan.");
+  } else if (s === "paused") {
+    notice("Dijeda: Nex tidak menjalankan perintah. Ucapkan \"mulai\" atau klik Lanjutkan.");
+  } else if (s === "listening") {
+    notice("Klik jendela presentasi sekarang agar tombol slide terkirim ke sana.");
+  } else if (s !== "starting") {
+    notice("");
+  }
 }
-function notice(msg) { $("notice").textContent = msg; $("notice").style.display = msg ? "block" : "none"; }
+
+function notice(msg) {
+  $("notice").textContent = msg;
+  $("notice").style.display = msg ? "block" : "none";
+}
+
 function clock() {
   if (!startedAt) return "00:00";
   const s = Math.floor((Date.now() - startedAt) / 1000);
   return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 }
-setInterval(() => { if (startedAt && state !== "stopped") $("timer").textContent = clock(); }, 500);
-function slideText(slide, total) { return slide ? (total ? `${slide} / ${total}` : `${slide}`) : "–"; }
+setInterval(() => {
+  if (startedAt && state !== "stopped") $("timer").textContent = clock();
+}, 500);
+
+function slideText(slide, total) {
+  return slide ? (total ? `${slide} / ${total}` : `${slide}`) : "–";
+}
+
+function updateEmptyState() {
+  const hasItems = $("transcript").children.length > 0;
+  $("transcriptEmpty").style.display = hasItems ? "none" : "flex";
+}
 
 function addFinal(ev) {
+  updateEmptyState();
   const li = document.createElement("li");
-  const t = document.createElement("time"); t.textContent = clock();
+  const t = document.createElement("time");
+  t.textContent = clock();
+
   const body = document.createElement("div");
-  const p = document.createElement("div"); p.textContent = ev.text;  // textContent: transcript is never HTML
+  const p = document.createElement("div");
+  p.className = "transcript-content";
+  p.textContent = ev.text;
+
   body.append(p);
-  if (ev.after_cut) body.append(badge("lanjutan kalimat panjang, diabaikan", "skip"));
+  if (ev.after_cut) {
+    body.append(badge("lanjutan kalimat panjang, diabaikan", "skip"));
+  }
   li.append(t, body);
   $("transcript").append(li);
-  li.scrollIntoView({ block: "end" });
+  li.scrollIntoView({ behavior: "smooth", block: "end" });
   lastFinal = body;
 }
-function badge(text, cls) { const b = document.createElement("span"); b.className = `badge ${cls}`; b.textContent = text; return b; }
+
+function badge(text, cls) {
+  const b = document.createElement("span");
+  b.className = `badge ${cls}`;
+  b.textContent = text;
+  return b;
+}
 
 function onEvent(ev) {
   switch (ev.type) {
@@ -175,83 +1222,373 @@ function onEvent(ev) {
       if (ev.slide) $("slide").textContent = slideText(ev.slide, ev.slides_total);
       if (ev.state === "stopped" && ev.session_id) showSummary(ev.session_id);
       break;
-    case "partial": $("partial").textContent = ev.text + " …"; break;
-    case "final": $("partial").textContent = ""; addFinal(ev); break;
+
+    case "partial":
+      $("partial").style.display = "block";
+      $("partial").textContent = ev.text + " …";
+      break;
+
+    case "final":
+      $("partial").style.display = "none";
+      $("partial").textContent = "";
+      addFinal(ev);
+      if (ev.rtf != null) {
+        $("rtf").textContent = ev.rtf.toFixed(2);
+        $("rtfChip").hidden = false;
+      }
+      break;
+
     case "command": {
       $("slide").textContent = slideText(ev.slide, ev.slides_total);
       $("lastCmd").textContent = `→ ${ev.slide}`;
       const lat = ev.latency != null ? `${ev.latency.toFixed(2)} s` : null;
       $("lastCmdInfo").textContent = `${ACTIONS[ev.action]} · ${ev.source === "voice" ? "suara" : "tombol"}${lat ? " · " + lat : ""}`;
       if (lat) $("latency").textContent = lat;
-      if (ev.source === "voice" && lastFinal) lastFinal.append(badge(`${ACTIONS[ev.action]} → ${ev.slide}`, "cmd"));
+      if (ev.source === "voice" && lastFinal) {
+        lastFinal.append(badge(`${ACTIONS[ev.action]} → ${ev.slide}`, "cmd"));
+      }
       break;
     }
+
+    case "shortcut": {
+      const scLabel = getShortcutLabel(ev.shortcut);
+      $("lastCmd").textContent = scLabel;
+      const lat = ev.latency != null ? `${ev.latency.toFixed(2)} s` : null;
+      $("lastCmdInfo").textContent = `${scLabel} · ${ev.source === "voice" ? "suara" : "tombol"}${lat ? " · " + lat : ""}`;
+      if (lat) $("latency").textContent = lat;
+      if (ev.source === "voice" && lastFinal) {
+        lastFinal.append(badge(scLabel, "cmd"));
+      }
+      break;
+    }
+
     case "rejected": {
       const why = ev.reason || `Slide ${ev.slide} tidak ada, perintah diabaikan.`;
       $("lastCmdInfo").textContent = why;
-      if (ev.source === "voice" && lastFinal) lastFinal.append(badge(ev.reason ? "slide terakhir tidak diketahui" : `slide ${ev.slide} tidak ada`, "skip"));
+      if (ev.source === "voice" && lastFinal) {
+        lastFinal.append(badge(ev.reason ? "slide terakhir tidak diketahui" : `slide ${ev.slide} tidak ada`, "skip"));
+      }
       break;
     }
-    case "control": {  // spoken "stop/berhenti" or "mulai"
+
+    case "control": {
       const label = ev.action === "pause" ? "Pendengaran dijeda (ucapkan \"mulai\")" : "Mendengarkan lagi";
       $("lastCmdInfo").textContent = label;
       if (lastFinal) lastFinal.append(badge(label, "cmd"));
       break;
     }
+
+    case "profile":
+      currentProfile = ev.profile;
+      disabledShortcuts = ev.disabled_shortcuts || [];
+      document.querySelectorAll(".profile-btn").forEach(b => {
+        b.classList.toggle("active", b.dataset.profile === ev.profile);
+      });
+      loadCheatSheet();
+      break;
+
     case "level": {
       const pct = Math.round(Math.min(100, ev.rms * 1500));
       $("level").style.width = pct + "%";
+      $("meterPercent").textContent = pct + "%";
       $("level").parentElement.setAttribute("aria-valuenow", pct);
       break;
     }
-    case "error": notice("Masalah mikrofon: " + ev.message); break;
+
+    case "error":
+      notice("Masalah mikrofon: " + ev.message);
+      break;
   }
 }
 
 function connect() {
   const ws = new WebSocket(`ws://${location.host}/ws`);
   ws.onmessage = m => onEvent(JSON.parse(m.data));
-  ws.onclose = () => setTimeout(connect, 1000);  // server restarted: reconnect quietly
+  ws.onclose = () => setTimeout(connect, 1000);
 }
 connect();
 
 async function api(path, body) {
-  const r = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify(body || {}) });
+  const opts = body !== undefined
+    ? { method: body === null ? "GET" : (typeof body === "string" ? body : "POST"),
+        headers: body && typeof body === "object" ? { "Content-Type": "application/json" } : undefined,
+        body: body && typeof body === "object" ? JSON.stringify(body) : undefined }
+    : {};
+  if (body && typeof body === "object" && !opts.method) opts.method = "POST";
+  const r = await fetch(path, opts);
   const data = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(typeof data.detail === "string" ? data.detail : r.statusText);
   return data;
 }
-async function run(fn) { try { await fn(); } catch (e) { notice(e.message); } }
 
+async function apiPut(path, body) {
+  const r = await fetch(path, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(typeof data.detail === "string" ? data.detail : r.statusText);
+  return data;
+}
+
+async function run(fn) {
+  try {
+    await fn();
+  } catch (e) {
+    notice(e.message);
+  }
+}
+
+// --- App Profile & Cheat-Sheet Management ---
+function getShortcutLabel(shortcutId) {
+  if (profileData && profileData.shortcuts && profileData.shortcuts[shortcutId]) {
+    return profileData.shortcuts[shortcutId].label;
+  }
+  return shortcutId;
+}
+
+async function loadCheatSheet() {
+  try {
+    const p = await (await fetch("/api/profile")).json();
+    profileData = p;
+
+    // Update active profile tag in cheat-sheet and drawer subtitle
+    if ($("activeProfileTag")) $("activeProfileTag").textContent = p.label;
+    if ($("drawerSubtitle")) $("drawerSubtitle").textContent = `Profil: ${p.label}`;
+
+    // Update Jump Mode radio in drawer
+    const isArrows = (p.jump_mode === "arrows");
+    document.querySelector('input[name="jumpModeRadio"][value="arrows"]').checked = isArrows;
+    document.querySelector('input[name="jumpModeRadio"][value="number"]').checked = !isArrows;
+    $("jumpOptionArrows").classList.toggle("active", isArrows);
+    $("jumpOptionNumber").classList.toggle("active", !isArrows);
+
+    // Build the Cheat-Sheet Reference List
+    const list = $("cmdList");
+    list.replaceChildren();
+
+    // 1. Navigation group
+    const navGroup = makeGroup("Navigasi Utama");
+    navGroup.append(
+      cmdRow("Berikutnya", "→", "next, lanjut, slide berikutnya"),
+      cmdRow("Mundur", "←", "back, balik, slide sebelumnya"),
+      cmdRow("Loncat ke Slide", "N ⏎", "slide [nomor], slide dua belas"),
+      cmdRow("Awal / Akhir", "Awal/Akhir", "slide pertama, slide terakhir")
+    );
+    list.append(navGroup);
+
+    // 2. Profile shortcuts group
+    const shortcuts = p.shortcuts || {};
+    if (Object.keys(shortcuts).length) {
+      const scGroup = makeGroup(`Pintasan ${p.label}`);
+      for (const [id, sc] of Object.entries(shortcuts)) {
+        scGroup.append(cmdRowToggle(sc.label, sc.key.toUpperCase(), sc.triggers.join(" / "), id, sc.enabled));
+      }
+      list.append(scGroup);
+    }
+
+    // 3. Control commands
+    const ctrlGroup = makeGroup("Kontrol Pendengaran");
+    ctrlGroup.append(
+      cmdRow("Jeda", "Pause", "stop, berhenti"),
+      cmdRow("Lanjutkan", "Resume", "mulai")
+    );
+    list.append(ctrlGroup);
+
+    // Build Drawer shortcuts list
+    buildDrawerShortcuts(shortcuts);
+  } catch (e) {
+    console.warn("cheatsheet load failed:", e);
+  }
+}
+
+function makeGroup(title) {
+  const div = document.createElement("div");
+  div.className = "cmd-group";
+  const h = document.createElement("div");
+  h.className = "cmd-group-title";
+  h.textContent = title;
+  div.append(h);
+  return div;
+}
+
+function cmdRow(name, keyLabel, trigger) {
+  const row = document.createElement("div");
+  row.className = "cmd-row";
+
+  const left = document.createElement("div");
+  left.className = "cmd-left";
+
+  const n = document.createElement("div");
+  n.className = "cmd-name";
+  n.textContent = name;
+  if (keyLabel) {
+    const k = document.createElement("span");
+    k.className = "cmd-key";
+    k.textContent = keyLabel;
+    n.append(k);
+  }
+
+  const t = document.createElement("div");
+  t.className = "cmd-trigger";
+  t.textContent = trigger;
+
+  left.append(n, t);
+  row.append(left);
+  return row;
+}
+
+function cmdRowToggle(name, keyLabel, trigger, shortcutId, enabled) {
+  const row = cmdRow(name, keyLabel, trigger);
+
+  const toggle = document.createElement("label");
+  toggle.className = "toggle";
+  toggle.title = enabled ? "Nonaktifkan pintasan ini" : "Aktifkan pintasan ini";
+
+  const input = document.createElement("input");
+  input.type = "checkbox";
+  input.checked = enabled;
+  input.addEventListener("change", () => toggleShortcut(shortcutId, input.checked));
+
+  const slider = document.createElement("span");
+  slider.className = "slider";
+
+  toggle.append(input, slider);
+  row.append(toggle);
+  return row;
+}
+
+function buildDrawerShortcuts(shortcuts) {
+  const container = $("drawerShortcutList");
+  container.replaceChildren();
+
+  for (const [id, sc] of Object.entries(shortcuts)) {
+    container.append(cmdRowToggle(sc.label, sc.key.toUpperCase(), sc.triggers.join(" / "), id, sc.enabled));
+  }
+}
+
+async function toggleShortcut(id, enabled) {
+  if (enabled) {
+    disabledShortcuts = disabledShortcuts.filter(s => s !== id);
+  } else {
+    if (!disabledShortcuts.includes(id)) disabledShortcuts.push(id);
+  }
+  await apiPut("/api/profile", {
+    profile: currentProfile,
+    disabled_shortcuts: disabledShortcuts
+  });
+  loadCheatSheet();
+}
+
+// App Profile Switch Buttons
+document.querySelectorAll(".profile-btn").forEach(btn => {
+  btn.addEventListener("click", async () => {
+    currentProfile = btn.dataset.profile;
+    disabledShortcuts = [];
+    document.querySelectorAll(".profile-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    await apiPut("/api/profile", { profile: currentProfile, disabled_shortcuts: [] });
+    loadCheatSheet();
+  });
+});
+
+// Settings Drawer Handlers
+function openDrawer() {
+  $("appSettingsDrawer").classList.add("open");
+  $("drawerOverlay").classList.add("open");
+  $("appSettingsDrawer").setAttribute("aria-hidden", "false");
+  $("drawerOverlay").setAttribute("aria-hidden", "false");
+}
+function closeDrawer() {
+  $("appSettingsDrawer").classList.remove("open");
+  $("drawerOverlay").classList.remove("open");
+  $("appSettingsDrawer").setAttribute("aria-hidden", "true");
+  $("drawerOverlay").setAttribute("aria-hidden", "true");
+}
+$("openSettingsBtn").addEventListener("click", openDrawer);
+$("closeDrawerBtn").addEventListener("click", closeDrawer);
+$("drawerOverlay").addEventListener("click", closeDrawer);
+
+// Jump mode radio change in drawer
+document.querySelectorAll('input[name="jumpModeRadio"]').forEach(radio => {
+  radio.addEventListener("change", async (e) => {
+    const mode = e.target.value;
+    $("jumpOptionArrows").classList.toggle("active", mode === "arrows");
+    $("jumpOptionNumber").classList.toggle("active", mode === "number");
+    try {
+      await apiPut("/api/settings", { jump_mode: mode });
+    } catch (err) {
+      console.warn("Could not persist jump mode directly to settings:", err);
+    }
+  });
+});
+
+// --- Session Controls ---
 $("start").onclick = () => run(async () => {
-  $("transcript").replaceChildren(); $("summary").hidden = true; $("lastCmd").textContent = "–";
+  $("transcript").replaceChildren();
+  $("summary").hidden = true;
+  $("lastCmd").textContent = "–";
+  updateEmptyState();
+
   setState("starting");
   notice("Memuat model pengenal suara… (pertama kali bisa sekitar 15 detik)");
+
   const total = parseInt($("total").value, 10);
   try {
-    const info = await api("/api/session/start", { title: $("title").value || "Sesi", slides_total: total > 0 ? total : null });
+    const info = await api("/api/session/start", {
+      title: $("title").value || "Sesi",
+      slides_total: total > 0 ? total : null
+    });
     startedAt = Date.now();
     $("slide").textContent = slideText(info.slide, info.slides_total);
-  } catch (e) { setState("idle"); throw e; }
+  } catch (e) {
+    setState("idle");
+    throw e;
+  }
 });
-$("pause").onclick = () => run(() => api(state === "paused" ? "/api/session/resume" : "/api/session/pause"));
-$("stop").onclick = () => run(() => api("/api/session/stop"));
+
+$("pause").onclick = () => run(() => api(state === "paused" ? "/api/session/resume" : "/api/session/pause", {}));
+$("stop").onclick = () => run(() => api("/api/session/stop", {}));
 $("prev").onclick = () => run(() => api("/api/session/action", { action: "prev" }));
 $("next").onclick = () => run(() => api("/api/session/action", { action: "next" }));
 
 async function showSummary(id) {
   const s = await (await fetch(`/api/sessions/${id}`)).json();
   const f = (x, unit = " s") => x == null ? "–" : x.toFixed(2) + unit;
-  const rows = [["Durasi", f(s.duration_s)], ["Perintah suara", s.voice_commands], ["Perintah tombol", s.manual_commands],
-                ["Latensi P50", f(s.latency_p50)], ["Latensi P95", f(s.latency_p95)], ["Real-time factor", f(s.rtf, "")]];
+  const rows = [
+    ["Durasi", f(s.duration_s)],
+    ["Perintah suara", s.voice_commands],
+    ["Perintah tombol", s.manual_commands],
+    ["Latensi P50", f(s.latency_p50)],
+    ["Latensi P95", f(s.latency_p95)],
+    ["Real-time factor", f(s.rtf, "")]
+  ];
   $("summaryList").replaceChildren(...rows.flatMap(([k, v]) => {
-    const dt = document.createElement("dt"); dt.textContent = k;
-    const dd = document.createElement("dd"); dd.textContent = v;
+    const dt = document.createElement("dt");
+    dt.textContent = k;
+    const dd = document.createElement("dd");
+    dd.textContent = v;
     return [dt, dd];
   }));
   $("summary").hidden = false;
 }
+
+// Initial state and cheat-sheet load
+(async () => {
+  try {
+    const st = await (await fetch("/api/status")).json();
+    if (st.dry_run) $("dryrun").hidden = false;
+    currentProfile = st.profile || "powerpoint";
+    document.querySelectorAll(".profile-btn").forEach(b => {
+      b.classList.toggle("active", b.dataset.profile === currentProfile);
+    });
+  } catch (e) {
+    console.warn("status fetch failed:", e);
+  }
+  updateEmptyState();
+  loadCheatSheet();
+})();
 </script>
 </body>
 </html>

@@ -3,6 +3,7 @@
 Rule-based intent classifier on top of the ASR output:
   ("next", None) | ("prev", None) | ("goto", n) | ("last", None)   slide actions
   ("pause", None) | ("resume", None)                                  listening on/off
+  ("shortcut", shortcut_id)                                           app-specific shortcut
   None
 
 Built for real talks, where command words also appear inside explanations:
@@ -12,6 +13,8 @@ Built for real talks, where command words also appear inside explanations:
 """
 import difflib
 import re
+
+from .profiles import shortcut_triggers
 
 NEXT = {"next", "lanjut", "lanjutkan"}                        # rarely said mid-explanation
 PREV = {"back", "balik", "previous", "prev"}
@@ -32,6 +35,21 @@ COMMAND_WORDS = (NEXT | PREV | NEXT_WITH_SLIDE | PREV_WITH_SLIDE | FIRST | LAST 
 VOCAB = sorted(COMMAND_WORDS)  # fuzzy targets; fillers excluded so a random word can't become one
 MAX_WORDS = 4  # after removing fillers; "back to slide 3" -> back slide 3
 FUZZY_CUTOFF = 0.8  # absorbs small ASR slips: "lanjud"->lanjut, "bali"->balik, "slaid"->slide
+
+# Cache for shortcut trigger lookups per (profile, disabled) combo
+_trigger_cache = {}
+
+
+def _get_triggers(profile, disabled):
+    key = (profile, tuple(sorted(disabled)))
+    if key not in _trigger_cache:
+        _trigger_cache[key] = shortcut_triggers(profile, disabled)
+    return _trigger_cache[key]
+
+
+def invalidate_trigger_cache():
+    """Clear the trigger cache (called when profile or toggles change)."""
+    _trigger_cache.clear()
 
 
 def _normalize(word):
@@ -54,12 +72,28 @@ def _number(rest):
     return n
 
 
-def parse(text):
-    """Return ("next"|"prev", None), ("goto", n) or None for one finished utterance."""
+def parse(text, profile="powerpoint", disabled_shortcuts=()):
+    """Return ("next"|"prev", None), ("goto", n), ("shortcut", id) or None for one finished utterance."""
+    # Check exact trigger match first before word-level normalization
+    raw_cleaned = " ".join(w for w in re.findall(r"[a-z0-9]+", text.lower()) if w not in FILLERS)
+    if raw_cleaned:
+        triggers = _get_triggers(profile, disabled_shortcuts)
+        if raw_cleaned in triggers:
+            return ("shortcut", triggers[raw_cleaned])
+
     words = [w for w in (_normalize(w) for w in re.findall(r"[a-z0-9]+", text.lower())) if w not in FILLERS]
     if not words or len(words) > MAX_WORDS:
+        if raw_cleaned:
+            triggers = _get_triggers(profile, disabled_shortcuts)
+            if raw_cleaned in triggers:
+                return ("shortcut", triggers[raw_cleaned])
         return None
     if any(w not in COMMAND_WORDS and not w.isdigit() for w in words):
+        # Words not in nav commands — but the normalized phrase might be a shortcut trigger
+        cleaned = " ".join(words)
+        triggers = _get_triggers(profile, disabled_shortcuts)
+        if cleaned in triggers:
+            return ("shortcut", triggers[cleaned])
         return None  # anything else in the utterance means it was speech, not a command
     if len(words) == 1 and words[0] in PAUSE:  # "stop" / "berhenti" on its own
         return ("pause", None)

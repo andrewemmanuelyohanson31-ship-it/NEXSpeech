@@ -21,7 +21,8 @@ CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY, value TEXT);
 """
 # tiny by default: on an i7-8700 CPU, small took ~4.6 s per command (RTF > 1); pick per laptop via eval
 DEFAULT_SETTINGS = {"model": "tiny", "language": "id", "chunk_s": 1.0, "silence_s": 0.6,
-                    "jump_mode": "number", "device": None}
+                    "jump_mode": "number", "device": None,
+                    "profile": "powerpoint", "disabled_shortcuts": []}
 
 
 class DB:

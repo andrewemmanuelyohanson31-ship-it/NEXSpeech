@@ -207,3 +207,61 @@ def test_long_sentence_does_not_move_slide():
         assert wait_for(lambda: any(e["type"] == "final" for e in c.get(f"/api/sessions/{sid}").json()["events"]))
         assert app.state.engine.slide == 1
         assert c.post("/api/session/stop").json()["voice_commands"] == 0
+
+
+# --- Profile API tests -------------------------------------------------------
+
+def test_profile_crud():
+    c = TestClient(app)
+    # Default profile
+    p = c.get("/api/profile").json()
+    assert p["profile"] == "powerpoint"
+    assert "blackout" in p["shortcuts"]
+    assert "laser" in p["shortcuts"]
+
+    # Switch to canva
+    r = c.put("/api/profile", json={"profile": "canva"}).json()
+    assert r["profile"] == "canva"
+    assert "laser" not in r["shortcuts"]   # Canva has no laser
+    assert "blackout" in r["shortcuts"]
+
+    # Disable a shortcut
+    r = c.put("/api/profile", json={"profile": "canva", "disabled_shortcuts": ["blackout"]}).json()
+    assert r["shortcuts"]["blackout"]["enabled"] is False
+
+    # Switch to google_slides
+    r = c.put("/api/profile", json={"profile": "google_slides"}).json()
+    assert r["profile"] == "google_slides"
+    assert "whiteout" in r["shortcuts"]
+    assert "laser" not in r["shortcuts"]
+
+    # Reset for other tests
+    c.put("/api/profile", json={"profile": "powerpoint", "disabled_shortcuts": []})
+
+
+def test_status_includes_dry_run_and_profile():
+    c = TestClient(app)
+    s = c.get("/api/status").json()
+    assert "dry_run" in s
+    assert "profile" in s
+    assert isinstance(s["dry_run"], bool)
+
+
+def test_mid_session_profile_switch(monkeypatch):
+    """Switching profile during a live session updates the engine."""
+    monkeypatch.setattr("nex.engine.COOLDOWN_S", 0)
+    fake = SequenceTranscriber(["lanjut"])
+    app.state.transcriber_factory = lambda **kw: fake
+    app.state.transcriber = None
+    app.state.mic_factory = FakeMic(utterances(1))
+    with TestClient(app) as c:
+        c.put("/api/profile", json={"profile": "powerpoint"})
+        c.post("/api/session/start", json={"title": "switch test"})
+        # Switch to canva mid-session
+        r = c.put("/api/profile", json={"profile": "canva"}).json()
+        assert r["profile"] == "canva"
+        assert app.state.engine.profile == "canva"
+        assert app.state.engine.jump_mode == "arrows"  # Canva defaults to arrows
+        c.post("/api/session/stop")
+        # Reset
+        c.put("/api/profile", json={"profile": "powerpoint", "disabled_shortcuts": []})

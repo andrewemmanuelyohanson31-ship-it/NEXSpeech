@@ -13,8 +13,10 @@ from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+from . import keys
 from .db import DB
 from .engine import Engine
+from .profiles import get_profile as _get_profile_def
 
 @asynccontextmanager
 async def lifespan(app):
@@ -24,7 +26,7 @@ async def lifespan(app):
         app.state.engine.stop()
 
 
-app = FastAPI(title="NEX backend", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="NEX backend", version="0.2.0", lifespan=lifespan)
 app.state.db = DB()
 app.state.engine = None
 app.state.transcriber = None
@@ -50,6 +52,13 @@ class SettingsIn(BaseModel):
     silence_s: Optional[float] = Field(None, ge=0.25, le=2)
     jump_mode: Optional[Literal["number", "arrows"]] = None
     device: Optional[int] = None
+    profile: Optional[Literal["canva", "powerpoint", "google_slides"]] = None
+    disabled_shortcuts: Optional[list[str]] = None
+
+
+class ProfileIn(BaseModel):
+    profile: Literal["canva", "powerpoint", "google_slides"]
+    disabled_shortcuts: list[str] = Field(default_factory=list)
 
 
 class StartIn(BaseModel):
@@ -139,11 +148,40 @@ def status():
         mics, mic_error = [], str(e)
     else:
         mic_error = None
+    settings = app.state.db.settings()
     return {"model": {"loaded": t is not None, "loading": app.state.loading,
                       "name": getattr(t, "model_size", None)},
             "microphones": mics, "mic_error": mic_error,
             "session": eng.info() if eng else {"state": "idle"},
-            "settings": app.state.db.settings()}
+            "settings": settings,
+            "dry_run": keys.DRY_RUN,
+            "profile": settings.get("profile", "powerpoint")}
+
+
+# --- profile -----------------------------------------------------------------
+@app.get("/api/profile")
+def get_profile():
+    settings = app.state.db.settings()
+    profile_name = settings.get("profile", "powerpoint")
+    p = _get_profile_def(profile_name)
+    disabled = set(settings.get("disabled_shortcuts", []))
+    for sid in disabled:
+        if sid in p["shortcuts"]:
+            p["shortcuts"][sid]["enabled"] = False
+    return {"profile": profile_name, **p}
+
+
+@app.put("/api/profile")
+def put_profile(body: ProfileIn):
+    """Switch profile — allowed mid-session."""
+    app.state.db.save_settings({"profile": body.profile,
+                                 "disabled_shortcuts": body.disabled_shortcuts})
+    from .commands import invalidate_trigger_cache
+    invalidate_trigger_cache()
+    eng = app.state.engine
+    if eng and eng.state != "stopped":
+        eng.set_profile(body.profile, body.disabled_shortcuts)
+    return get_profile()
 
 
 # --- scripts (Naskah) ----------------------------------------------------------

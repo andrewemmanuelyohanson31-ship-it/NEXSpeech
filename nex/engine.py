@@ -6,6 +6,7 @@ import time
 from . import keys
 from .asr import StreamingRecognizer, rms
 from .commands import parse
+from .profiles import PROFILES, DEFAULT_PROFILE
 
 COOLDOWN_S = 1.0  # ignore a second voice command this soon after one (echo / repeated word)
 
@@ -13,7 +14,10 @@ COOLDOWN_S = 1.0  # ignore a second voice command this soon after one (echo / re
 class Engine:
     def __init__(self, transcriber, db, emit, settings, session_id, slides_total=None, mic_factory=None):
         self.db, self.emit, self.session_id = db, emit, session_id
-        self.jump_mode = settings.get("jump_mode", "number")
+        self.profile = settings.get("profile", DEFAULT_PROFILE)
+        self.disabled_shortcuts = set(settings.get("disabled_shortcuts", []))
+        profile_def = PROFILES.get(self.profile, PROFILES[DEFAULT_PROFILE])
+        self.jump_mode = settings.get("jump_mode", profile_def["jump_mode"])
         self.slides_total = slides_total
         self.slide = 1
         self.rec = StreamingRecognizer(transcriber, chunk_s=settings["chunk_s"], silence_s=settings["silence_s"])
@@ -62,7 +66,7 @@ class Engine:
         speech_end_t = ev.pop("speech_end_t", None)
         final = ev["type"] == "final"
         # finals only (one "next" can't fire twice), and never the tail of a forced 8 s cut
-        action = parse(ev["text"]) if final and not ev.get("after_cut") else None
+        action = parse(ev["text"], self.profile, self.disabled_shortcuts) if final and not ev.get("after_cut") else None
         resumed = False
         if self.state == "paused":
             if action != ("resume", None):
@@ -88,6 +92,17 @@ class Engine:
 
     def act(self, action, source, speech_end_t=None, text=None):
         with self._lock:
+            # Shortcut actions (blackout, whiteout, laser, pen, exit)
+            if action[0] == "shortcut":
+                shortcut_id = action[1]
+                keys.send_shortcut(shortcut_id, self.profile)
+                latency = (time.perf_counter() - speech_end_t) if speech_end_t else None
+                ev = {"type": "shortcut", "shortcut": shortcut_id, "text": text, "source": source,
+                      "latency": latency}
+                self.emit(ev)
+                self.db.log_event(self.session_id, ev)
+                return ev
+
             if action[0] == "last":
                 if not self.slides_total:
                     ev = {"type": "rejected", "action": "last", "slide": None, "text": text, "source": source,
@@ -112,6 +127,15 @@ class Engine:
             self.db.log_event(self.session_id, ev)
             return ev
 
+    def set_profile(self, profile, disabled_shortcuts=()):
+        """Switch profile mid-session (called from the API)."""
+        self.profile = profile
+        self.disabled_shortcuts = set(disabled_shortcuts)
+        profile_def = PROFILES.get(profile, PROFILES[DEFAULT_PROFILE])
+        self.jump_mode = profile_def["jump_mode"]
+        self.emit({"type": "profile", "profile": profile,
+                   "disabled_shortcuts": list(self.disabled_shortcuts)})
+
     def pause(self):
         if self.state != "stopped":
             self.rec.reset()
@@ -133,4 +157,4 @@ class Engine:
 
     def info(self):
         return {"state": self.state, "slide": self.slide, "slides_total": self.slides_total,
-                "session_id": self.session_id}
+                "session_id": self.session_id, "profile": self.profile}

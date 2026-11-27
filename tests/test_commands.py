@@ -51,3 +51,94 @@ def test_parse(text, want):
 @pytest.mark.parametrize("text", IN_TALK)
 def test_explanation_phrases_never_move_the_slide(text):
     assert parse(text) is None
+
+
+# --- Shortcut tests --------------------------------------------------------
+
+SHORTCUT_CASES_PPT = {
+    "layar hitam": ("shortcut", "blackout"),
+    "black screen": ("shortcut", "blackout"),
+    "blackout": ("shortcut", "blackout"),
+    "layar putih": ("shortcut", "whiteout"),
+    "white screen": ("shortcut", "whiteout"),
+    "whiteout": ("shortcut", "whiteout"),
+    "laser": ("shortcut", "laser"),
+    "laser pointer": ("shortcut", "laser"),
+    "pena": ("shortcut", "pen"),
+    "pen": ("shortcut", "pen"),
+    "ink": ("shortcut", "pen"),
+    "keluar presentasi": ("shortcut", "exit"),
+    "exit slideshow": ("shortcut", "exit"),
+    "keluar": ("shortcut", "exit"),
+}
+
+
+@pytest.mark.parametrize("text,want", SHORTCUT_CASES_PPT.items())
+def test_shortcut_parse_powerpoint(text, want):
+    assert parse(text, profile="powerpoint") == want
+
+
+def test_shortcut_disabled():
+    assert parse("laser", profile="powerpoint", disabled_shortcuts=("laser",)) is None
+
+
+def test_shortcut_disabled_blackout():
+    assert parse("layar hitam", profile="powerpoint", disabled_shortcuts=("blackout",)) is None
+
+
+def test_canva_has_no_whiteout():
+    assert parse("layar putih", profile="canva") is None
+
+
+def test_canva_has_no_laser():
+    assert parse("laser", profile="canva") is None
+
+
+def test_canva_has_blackout():
+    assert parse("layar hitam", profile="canva") == ("shortcut", "blackout")
+
+
+def test_canva_has_exit():
+    assert parse("keluar", profile="canva") == ("shortcut", "exit")
+    assert parse("exit present", profile="canva") == ("shortcut", "exit")
+
+
+def test_google_slides_has_whiteout():
+    assert parse("layar putih", profile="google_slides") == ("shortcut", "whiteout")
+    assert parse("white screen", profile="google_slides") == ("shortcut", "whiteout")
+
+
+def test_google_slides_has_blackout():
+    assert parse("layar hitam", profile="google_slides") == ("shortcut", "blackout")
+    assert parse("blackout", profile="google_slides") == ("shortcut", "blackout")
+
+
+def test_google_slides_has_exit():
+    assert parse("keluar presentasi", profile="google_slides") == ("shortcut", "exit")
+    assert parse("exit presentation", profile="google_slides") == ("shortcut", "exit")
+
+
+def test_google_slides_has_no_laser():
+    assert parse("laser", profile="google_slides") is None
+    assert parse("pena", profile="google_slides") is None
+
+
+def test_nav_commands_take_priority_over_shortcuts():
+    """Navigation words like 'next', 'back' must still be navigation, not shortcuts."""
+    assert parse("lanjut", profile="powerpoint") == ("next", None)
+    assert parse("balik", profile="powerpoint") == ("prev", None)
+    assert parse("slide 3", profile="powerpoint") == ("goto", 3)
+
+
+SHORTCUT_IN_TALK = [
+    "kita lihat layar hitam di sebelah kiri",
+    "warna putih dan hitam",
+    "exit the building",
+    "tolong ambil pena dari meja",
+    "laser bisa digunakan untuk presentasi",
+]
+
+
+@pytest.mark.parametrize("text", SHORTCUT_IN_TALK)
+def test_shortcut_phrases_in_speech_do_not_trigger(text):
+    assert parse(text, profile="powerpoint") is None
